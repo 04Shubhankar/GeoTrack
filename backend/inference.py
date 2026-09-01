@@ -8,7 +8,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 # ── Config ────────────────────────────────────────────
-MODEL_PATH  = r"F:\GeoTrack\model\unet_resnet34_e2 (2).pth"
+MODEL_PATH  = r"F:\GeoTrack\model\unet_resnet34_803.pth"
 DEVICE      = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TILE_SIZE   = 256
 NUM_CLASSES = 6
