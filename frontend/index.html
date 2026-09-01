@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GeoTrack — LULC Mapping</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d2b;
+      color: #ffffff;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a3e;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 2px solid #00e5ff;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      color: #00e5ff;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    header p {
+      font-size: 0.8rem;
+      color: #aaaacc;
+      margin-top: 2px;
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    /* ── Upload Section ── */
+    .upload-section {
+      background: #1a1a3e;
+      border: 2px dashed #00e5ff;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 24px;
+    }
+
+    .upload-section:hover { background: #1e1e4a; }
+
+    .upload-section h2 {
+      font-size: 1.1rem;
+      color: #00e5ff;
+      margin-bottom: 8px;
+    }
+
+    .upload-section p {
+      font-size: 0.85rem;
+      color: #aaaacc;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"] { display: none; }
+
+    .btn {
+      background: #00e5ff;
+      color: #0d0d2b;
+      border: none;
+      padding: 10px 28px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent;
+      color: #00e5ff;
+      border: 2px solid #00e5ff;
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-outline:hover {
+      background: #00e5ff;
+      color: #0d0d2b;
+    }
+
+    /* ── Status ── */
+    .status {
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .status.loading {
+      background: #1a1a3e;
+      color: #00e5ff;
+      display: block;
+    }
+
+    .status.error {
+      background: #3e1a1a;
+      color: #ff4081;
+      display: block;
+    }
+
+    /* ── Results ── */
+    .results { display: none; }
+    .results.visible { display: block; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .result-card {
+      background: #1a1a3e;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #2a2a5e;
+    }
+
+    .result-card h3 {
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      color: #00e5ff;
+      background: #12122e;
+      border-bottom: 1px solid #2a2a5e;
+    }
+
+    .result-card img {
+      width: 100%;
+      height: 280px;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* ── Metrics ── */
+    .metrics {
+      background: #1a1a3e;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      border: 1px solid #2a2a5e;
+    }
+
+    .metrics h3 {
+      font-size: 0.95rem;
+      color: #00e5ff;
+      margin-bottom: 16px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .metric-item {
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: #aaaacc;
+      margin-top: 4px;
+    }
+
+    /* ── Class Breakdown ── */
+    .class-breakdown { margin-top: 16px; }
+
+    .class-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .class-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .class-name {
+      font-size: 0.82rem;
+      color: #ccccee;
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .class-bar-bg {
+      flex: 1;
+      background: #0d0d2b;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .class-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s ease;
+    }
+
+    .class-pct {
+      font-size: 0.8rem;
+      color: #aaaacc;
+      width: 40px;
+      text-align: right;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #ccccee;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── Download ── */
+    .download-section {
+      text-align: center;
+      padding: 20px;
+      background: #1a1a3e;
+      border-radius: 10px;
+      border: 1px solid #2a2a5e;
+    }
+
+    .download-section p {
+      font-size: 0.85rem;
+      color: #aaaacc;
+      margin-bottom: 12px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #555577;
+      font-size: 0.78rem;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌍 GeoTrack</h1>
+    <p>AI-Powered LULC Mapping · U-Net ResNet34 · DeepGlobe Trained</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- Upload -->
+  <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+    <h2>Upload Orthophoto or Satellite Image</h2>
+    <p>Supported formats: JPG, PNG, TIF · Max 50MB</p>
+    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.tif,.tiff"
+           onchange="handleFileSelect(event)" />
+    <button class="btn" onclick="event.stopPropagation();"
+            id="uploadBtn" disabled>
+      Run GeoTrack
+    </button>
+  </div>
+
+  <!-- Status -->
+  <div class="status" id="status"></div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+
+    <!-- Images -->
+    <div class="results-grid">
+      <div class="result-card">
+        <h3>📥 Input Image</h3>
+        <img id="originalImg" src="" alt="Original" />
+      </div>
+      <div class="result-card">
+        <h3>🗺️ Predicted LULC Mask</h3>
+        <img id="maskImg" src="" alt="Predicted Mask" />
+      </div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="metrics">
+      <h3>📊 Prediction Metrics</h3>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-value" id="confidenceVal">—</div>
+          <div class="metric-label">Confidence Score</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value" id="classCount">—</div>
+          <div class="metric-label">Classes Detected</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">0.55</div>
+          <div class="metric-label">Model mIoU</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-value">6</div>
+          <div class="metric-label">LULC Classes</div>
+        </div>
+      </div>
+
+      <!-- Class Breakdown -->
+      <div class="class-breakdown" id="classBreakdown"></div>
+
+      <!-- Legend -->
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(0,255,255)"></div>Urban Land
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(255,255,0)"></div>Agriculture
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(255,0,255)"></div>Rangeland
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(0,255,0)"></div>Forest
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(0,0,255)"></div>Water
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:rgb(255,255,255)"></div>Barren Land
+        </div>
+      </div>
+    </div>
+
+    <!-- Download -->
+    <div class="download-section">
+      <p>Download GIS-ready vector output for use in QGIS, ArcGIS, or any GIS platform</p>
+      <a class="btn-outline" id="geojsonLink" href="#" download>
+        ⬇ Download GeoJSON
+      </a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  GeoTrack · U-Net + ResNet34 · DeepGlobe Land Cover · Val mIoU 0.55 · IDEATHON 2026
+</footer>
+
+<script>
+  const CLASS_COLORS = {
+    urban_land       : '#00ffff',
+    agriculture_land : '#ffff00',
+    rangeland        : '#ff00ff',
+    forest_land      : '#00ff00',
+    water            : '#0000ff',
+    barren_land      : '#ffffff',
+  };
+
+  let selectedFile = null;
+
+  function handleFileSelect(event) {
+    selectedFile = event.target.files[0];
+    if (selectedFile) {
+      document.getElementById('uploadBtn').disabled = false;
+      document.getElementById('uploadBtn').textContent =
+        `Run GeoTrack — ${selectedFile.name}`;
+    }
+  }
+
+  document.getElementById('uploadBtn').addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    const statusEl  = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+
+    // Show loading
+    statusEl.className  = 'status loading';
+    statusEl.textContent = '⏳ Running GeoTrack pipeline...';
+    resultsEl.className  = 'results';
+    document.getElementById('uploadBtn').disabled = true;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch('http://localhost:8000/predict', {
+        method : 'POST',
+        body   : formData
+      });
+
+      const data = await response.json();
+
+      if (data.error) throw new Error(data.error);
+
+      // Populate results
+      document.getElementById('originalImg').src =
+        `http://localhost:8000${data.original_url}`;
+      document.getElementById('maskImg').src =
+        `http://localhost:8000${data.mask_url}`;
+      document.getElementById('confidenceVal').textContent =
+        (data.confidence * 100).toFixed(1) + '%';
+      document.getElementById('classCount').textContent =
+        Object.keys(data.class_breakdown).length;
+
+      // GeoJSON download
+      document.getElementById('geojsonLink').href =
+        `http://localhost:8000${data.geojson_url}`;
+
+      // Class breakdown bars
+      const breakdownEl = document.getElementById('classBreakdown');
+      breakdownEl.innerHTML = '';
+      for (const [cls, pct] of Object.entries(data.class_breakdown)) {
+        const color = CLASS_COLORS[cls] || '#888888';
+        breakdownEl.innerHTML += `
+          <div class="class-row">
+            <div class="class-color" style="background:${color}"></div>
+            <div class="class-name">${cls.replace('_', ' ')}</div>
+            <div class="class-bar-bg">
+              <div class="class-bar"
+                   style="width:${pct}%;background:${color}"></div>
+            </div>
+            <div class="class-pct">${pct}%</div>
+          </div>`;
+      }
+
+      // Show results
+      statusEl.className  = 'status';
+      resultsEl.className = 'results visible';
+
+    } catch (err) {
+      statusEl.className  = 'status error';
+      statusEl.textContent = `❌ Error: ${err.message}`;
+      document.getElementById('uploadBtn').disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>
