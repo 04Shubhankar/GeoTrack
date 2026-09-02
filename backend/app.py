@@ -13,6 +13,8 @@ import uvicorn
 from inference import load_model, predict
 from vectorize import mask_to_geojson, save_geojson
 
+from report_generator import create_report
+
 # ── Setup ─────────────────────────────────────────────
 app   = FastAPI(title="GeoTrack API")
 model = load_model()
@@ -21,6 +23,8 @@ UPLOAD_DIR   = r"F:\GeoTrack\outputs\uploads"
 RESULT_DIR   = r"F:\GeoTrack\outputs\results"
 GEOJSON_DIR  = r"F:\GeoTrack\outputs\geojson"
 OVERLAYS_DIR = r"F:\GeoTrack\outputs\overlays"
+REPORT_DIR = r"F:\GeoTrack\outputs\reports"
+os.makedirs(REPORT_DIR, exist_ok=True)
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULT_DIR, exist_ok=True)
@@ -83,6 +87,7 @@ async def predict_route(file: UploadFile = File(...)):
         geojson      = mask_to_geojson(pred_mask, confidence, w, h)
         geojson_path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
         save_geojson(geojson, geojson_path)
+        geojson_url = f"http://localhost:8000/results/{job_id}_output.geojson"
 
         # Class breakdown
         class_names = [
@@ -96,13 +101,26 @@ async def predict_route(file: UploadFile = File(...)):
             if count > 0:
                 class_pixels[name] = round(count / total_pixels * 100, 2)
 
+        # Generate PDF Report
+        report_path = os.path.join(REPORT_DIR, f"{job_id}_report.pdf")
+        create_report(
+            output_path=report_path,
+            job_id=job_id,
+            original_image_path=orig_path,
+            mask_image_path=mask_path,
+            confidence=confidence,
+            class_breakdown=class_pixels,
+            geojson_url=geojson_url
+        )
+
         return JSONResponse({
             "job_id"         : job_id,
             "confidence"     : confidence,
             "class_breakdown": class_pixels,
             "mask_url"       : f"/results/{job_id}_mask.png",
             "original_url"   : f"/results/{job_id}_original.png",
-            "geojson_url"    : f"/results/{job_id}_output.geojson"
+            "geojson_url"    : f"/results/{job_id}_output.geojson",
+            "report_url"     : f"/results/{job_id}_report.pdf"
         })
 
     except Exception as e:
@@ -118,6 +136,11 @@ def get_result(filename: str):
     
     # Check in geojson directory
     path = os.path.join(GEOJSON_DIR, filename)
+    if os.path.exists(path):
+        return FileResponse(path)
+    
+    # Check in reports directory
+    path = os.path.join(REPORT_DIR, filename)
     if os.path.exists(path):
         return FileResponse(path)
     
