@@ -14,6 +14,7 @@ from inference import load_model, predict
 from vectorize import mask_to_geojson, save_geojson
 
 from report_generator import create_report
+from storage import upload_file, save_report_metadata
 
 # ── Setup ─────────────────────────────────────────────
 app   = FastAPI(title="GeoTrack API")
@@ -77,17 +78,35 @@ async def predict_route(file: UploadFile = File(...)):
         # Save predicted mask as PNG
         mask_path = os.path.join(RESULT_DIR, f"{job_id}_mask.png")
         Image.fromarray(pred_rgb).save(mask_path)
+        # Upload predicted mask to Supabase
+        mask_image_url = upload_file(
+            bucket_name="geotrack-images",
+            file_path=mask_path,
+            destination_path=f"masks/{job_id}_mask.png"
+        )
 
         # Save original resized
         orig_path = os.path.join(RESULT_DIR, f"{job_id}_original.png")
         Image.open(img_path).convert("RGB")\
              .resize((256, 256)).save(orig_path)
+        # Upload original image to Supabase
+        original_image_url = upload_file(
+            bucket_name="geotrack-images",
+            file_path=orig_path,
+            destination_path=f"originals/{job_id}_original.png"
+        )
 
         # Generate GeoJSON
         geojson      = mask_to_geojson(pred_mask, confidence, w, h)
         geojson_path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
         save_geojson(geojson, geojson_path)
-        geojson_url = f"http://localhost:8000/results/{job_id}_output.geojson"
+
+        geojson_url = upload_file(
+            bucket_name="geotrack-raw-data",
+            file_path=geojson_path,
+            destination_path=f"geojson/{job_id}_output.geojson"
+        )
+        
 
         # Class breakdown
         class_names = [
@@ -111,6 +130,12 @@ async def predict_route(file: UploadFile = File(...)):
             confidence=confidence,
             class_breakdown=class_pixels,
             geojson_url=geojson_url
+        )
+        # Upload PDF report to Supabase
+        report_url = upload_file(
+            bucket_name="geotrack-reports",
+            file_path=report_path,
+            destination_path=f"reports/{job_id}_report.pdf"
         )
 
         return JSONResponse({
