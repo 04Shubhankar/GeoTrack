@@ -17,10 +17,15 @@ from vectorize import mask_to_geojson, save_geojson
 app   = FastAPI(title="GeoTrack API")
 model = load_model()
 
-UPLOAD_DIR = r"F:\GeoTrack\outputs\uploads"
-RESULT_DIR = r"F:\GeoTrack\outputs\results"
+UPLOAD_DIR   = r"F:\GeoTrack\outputs\uploads"
+RESULT_DIR   = r"F:\GeoTrack\outputs\results"
+GEOJSON_DIR  = r"F:\GeoTrack\outputs\geojson"
+OVERLAYS_DIR = r"F:\GeoTrack\outputs\overlays"
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RESULT_DIR, exist_ok=True)
+os.makedirs(GEOJSON_DIR, exist_ok=True)
+os.makedirs(OVERLAYS_DIR, exist_ok=True)
 
 # ── CORS — allows frontend to talk to backend ─────────
 app.add_middleware(
@@ -76,7 +81,7 @@ async def predict_route(file: UploadFile = File(...)):
 
         # Generate GeoJSON
         geojson      = mask_to_geojson(pred_mask, confidence, w, h)
-        geojson_path = os.path.join(RESULT_DIR, f"{job_id}_output.geojson")
+        geojson_path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
         save_geojson(geojson, geojson_path)
 
         # Class breakdown
@@ -106,9 +111,21 @@ async def predict_route(file: UploadFile = File(...)):
 
 @app.get("/results/{filename}")
 def get_result(filename: str):
+    # Check in results directory first (for masks and originals)
     path = os.path.join(RESULT_DIR, filename)
     if os.path.exists(path):
         return FileResponse(path)
+    
+    # Check in geojson directory
+    path = os.path.join(GEOJSON_DIR, filename)
+    if os.path.exists(path):
+        return FileResponse(path)
+    
+    # Check in overlays directory
+    path = os.path.join(OVERLAYS_DIR, filename)
+    if os.path.exists(path):
+        return FileResponse(path)
+    
     return JSONResponse({"error": "File not found"}, status_code=404)
 
 
