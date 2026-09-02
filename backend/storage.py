@@ -46,10 +46,18 @@ def upload_file(bucket_name: str, file_path: str, destination_path: str) -> str:
     return supabase.storage.from_(bucket_name).get_public_url(destination_path)
 
 
-def save_report_metadata(job_id: str, report_url: str, confidence: float, class_breakdown: dict):
+def save_report_metadata(
+    job_id: str,
+    confidence: float,
+    class_breakdown: dict,
+    original_image_url: str,
+    mask_image_url: str,
+    geojson_url: str,
+    report_url: str,
+):
     """Optional metadata writer for report records.
 
-    This is intentionally safe: if no `reports` table exists, it simply returns.
+    This is intentionally safe: if the metadata table is unavailable, it simply returns.
     """
     try:
         data = {
@@ -57,8 +65,11 @@ def save_report_metadata(job_id: str, report_url: str, confidence: float, class_
             "report_url": report_url,
             "confidence": confidence,
             "class_breakdown": class_breakdown,
+            "original_image_url": original_image_url,
+            "mask_image_url": mask_image_url,
+            "geojson_url": geojson_url,
         }
-        supabase.table("reports").insert(data).execute()
+        supabase.table("geotrack_metadata").insert(data).execute()
     except Exception:
         # If the table or schema is not configured yet, ignore silently.
         pass
