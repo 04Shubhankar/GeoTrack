@@ -138,6 +138,30 @@ async def predict_route(file: UploadFile = File(...)):
             destination_path=f"reports/{job_id}_report.pdf"
         )
 
+        # Save iteration metadata to Supabase database
+        save_report_metadata(
+            job_id=job_id,
+            confidence=confidence,
+            class_breakdown=class_pixels,
+            original_image_url=original_image_url,
+            mask_image_url=mask_image_url,
+            geojson_url=geojson_url,
+            report_url=report_url
+        )
+
+        # Delete local files after successful Supabase upload
+        files_to_delete = [
+            img_path,
+            orig_path,
+            mask_path,
+            geojson_path,
+            report_path
+        ]
+
+        for file_path in files_to_delete:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
         return JSONResponse({
             "job_id"         : job_id,
             "confidence"     : confidence,
