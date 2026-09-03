@@ -317,13 +317,14 @@
   }
 
   function startAOIDrawing() {
+    if (!map) return;
     state.isSelectingAOI = true;
     state.aoiStartLatLng = null;
     dom.btnSelectAOI.classList.add('active');
     dom.btnDrawBox.classList.add('active');
     dom.aoiMapBanner.style.display = 'flex';
     dom.aoiMapBanner.querySelector('span').textContent = 'Click on the map to place the first corner of your selection box';
-    map.setOptions({ draggableCursor: 'crosshair' });
+    map.setOptions({ draggable: false, draggableCursor: 'crosshair' });
   }
 
   function cancelAOIDrawing() {
@@ -332,7 +333,7 @@
     dom.btnSelectAOI.classList.remove('active');
     dom.btnDrawBox.classList.remove('active');
     dom.aoiMapBanner.style.display = 'none';
-    map.setOptions({ draggableCursor: null });
+    map.setOptions({ draggable: true, draggableCursor: null });
 
     if (!state.aoiBounds && state.aoiRectangle) {
       state.aoiRectangle.setMap(null);
@@ -345,8 +346,9 @@
       state.aoiRectangle = new google.maps.Rectangle({
         bounds: bounds,
         map: map,
-        editable: true,
-        draggable: true,
+        clickable: false,
+        editable: false,
+        draggable: false,
         fillColor: '#00e5ff',
         fillOpacity: 0.2,
         strokeColor: '#00e5ff',
@@ -373,9 +375,13 @@
     dom.btnSelectAOI.classList.remove('active');
     dom.btnDrawBox.classList.remove('active');
     dom.aoiMapBanner.style.display = 'none';
-    map.setOptions({ draggableCursor: null });
+    map.setOptions({ draggable: true, draggableCursor: null });
 
     updateAOIRectangle(bounds);
+    state.aoiRectangle.setOptions({
+      editable: true,
+      draggable: true
+    });
     applyAOIBounds(bounds);
   }
 
