@@ -20,7 +20,7 @@ def predict_remote(image_path: str):
     if not SPACE_ID:
         raise RuntimeError("HF_SPACE_ID is not configured")
 
-    client = Client(SPACE_ID, token=HF_TOKEN or None)
+    client = Client(SPACE_ID, hf_token=HF_TOKEN or None)
     result = client.predict(image_path, api_name="/predict")
 
     if not isinstance(result, (tuple, list)) or len(result) != 3:
