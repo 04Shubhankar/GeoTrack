@@ -13,8 +13,13 @@
   // ── 1. Constants & Configurations ──────────────────────────────────────────
   // Use the configured Render API, the same-origin API in production, or the
   // local FastAPI server during development.
+  const RENDER_API_URL = 'https://geotrack-4clh.onrender.com';
   const API_BASE = window.GEOTRACK_API_URL || (
-    window.location.port === '8000' || window.location.port === '' ? '' : 'http://127.0.0.1:8000'
+    window.location.port === '8000' || window.location.hostname === 'geotrack-4clh.onrender.com'
+      ? ''
+      : window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:8000'
+        : RENDER_API_URL
   );
   const API_HOST = API_BASE || window.location.origin;
 
