@@ -614,6 +614,9 @@
   async function displayInferenceResults(data, bounds, localRawUrl) {
     if (!map) return;
 
+    state.currentFeatures = [];
+    state.currentGeoJSON = null;
+
     // 1. Raw Satellite Image GroundOverlay
     const rawUrl = data.original_url ? resolveUrl(data.original_url) : localRawUrl;
     if (!rawUrl || !data.mask_url) {
@@ -668,6 +671,8 @@
       }
 
       renderGeoJSONVectors(geojsonData);
+    } else {
+      populateAttributeTable([]);
     }
 
     // 4. Update Real Class Breakdown & Analytics
@@ -797,7 +802,7 @@
       : '--';
     dom.kpiArea.textContent = dom.aoiAreaM2.textContent || '-- m²';
     dom.kpiGreenIndex.textContent = `${greenPct.toFixed(1)}%`;
-    dom.kpiPatches.textContent = state.currentFeatures.length || Object.keys(breakdown).length;
+    dom.kpiPatches.textContent = state.currentFeatures.length;
 
     // Update QA Banner
     if (confidence >= 0.65) {

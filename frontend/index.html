@@ -8,9 +8,7 @@
   <!-- Font Awesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
-  <!-- Stylesheet (FastAPI static mount + relative fallback) -->
-  <link rel="stylesheet" href="/static/style.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link id="geoTrackStylesheet" rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -25,7 +23,7 @@
 
       <!-- Brand Identity -->
       <div class="brand-icon">
-        <img src="./assets/logo.png" alt="GeoTrack logo" />
+        <img id="geoTrackLogo" src="./assets/logo.png" alt="GeoTrack logo" />
       </div>
       <div class="brand-text">
         <h1>GeoTrack <span class="brand-badge">Earth Pro</span></h1>
@@ -575,23 +573,16 @@
 </script>
 
 
-<!-- All controls are app actions, never native form submissions. -->
+<!-- GeoTrack Application Assets -->
 <script>
-  (function() {
-    var s = document.createElement('script');
-    s.src = window.location.port === '8000' ? '/static/script.js' : 'script.js';
-    document.body.appendChild(s);
+  (function () {
+    var onRender = window.location.hostname === 'geotrack-4clh.onrender.com';
+    document.getElementById('geoTrackStylesheet').href = onRender ? '/static/style.css' : 'style.css';
+    document.getElementById('geoTrackLogo').src = onRender ? '/static/logo.png' : './assets/logo.png';
+    var script = document.createElement('script');
+    script.src = onRender ? '/static/script.js' : 'script.js';
+    document.body.appendChild(script);
   })();
-</script>
-
-<!-- GeoTrack Application Script -->
-<script src="/static/script.js"></script>
-<script>
-  if (typeof window.GeoTrackAppLoaded === 'undefined') {
-    var fallbackScript = document.createElement('script');
-    fallbackScript.src = 'script.js';
-    document.body.appendChild(fallbackScript);
-  }
 </script>
 </body>
 </html>
