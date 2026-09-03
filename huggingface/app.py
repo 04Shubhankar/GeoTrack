@@ -1,5 +1,4 @@
 import gradio as gr
-import numpy as np
 import spaces
 import torch
 from PIL import Image
@@ -7,9 +6,9 @@ from PIL import Image
 from backend.inference import load_model, predict as run_prediction
 
 
-NUM_CLASSES = 6
 MODEL_PATH = "huggingface/unet_resnet34_803.pth"
-model, cpu_device = load_model(MODEL_PATH)
+model = load_model(MODEL_PATH)
+cpu_device = torch.device("cpu")
 
 
 @spaces.GPU(duration=60)
