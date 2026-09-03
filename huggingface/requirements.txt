@@ -1,0 +1,7 @@
+gradio==5.0.0
+spaces
+torch
+torchvision
+numpy
+Pillow
+segmentation-models-pytorch
