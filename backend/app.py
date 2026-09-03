@@ -2,7 +2,6 @@
 
 import os
 import uuid
-import numpy as np
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.responses import JSONResponse, FileResponse
@@ -10,21 +9,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from inference import load_model, predict
-from vectorize import mask_to_geojson, save_geojson
+from backend.vectorize import mask_to_geojson, save_geojson
+from backend.huggingface_client import predict_remote
 
-from report_generator import create_report
-from storage import upload_file, save_report_metadata, list_report_metadata
+from backend.report_generator import create_report
+from backend.storage import upload_file, save_report_metadata, list_report_metadata
 
 # ── Setup ─────────────────────────────────────────────
 app   = FastAPI(title="GeoTrack API")
-model = load_model()
 
-UPLOAD_DIR   = r"F:\GeoTrack\outputs\uploads"
-RESULT_DIR   = r"F:\GeoTrack\outputs\results"
-GEOJSON_DIR  = r"F:\GeoTrack\outputs\geojson"
-OVERLAYS_DIR = r"F:\GeoTrack\outputs\overlays"
-REPORT_DIR = r"F:\GeoTrack\outputs\reports"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUTPUT_DIR = os.path.join(BASE_DIR, "outputs")
+UPLOAD_DIR = os.path.join(OUTPUT_DIR, "uploads")
+RESULT_DIR = os.path.join(OUTPUT_DIR, "results")
+GEOJSON_DIR = os.path.join(OUTPUT_DIR, "geojson")
+OVERLAYS_DIR = os.path.join(OUTPUT_DIR, "overlays")
+REPORT_DIR = os.path.join(OUTPUT_DIR, "reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -44,14 +44,14 @@ app.add_middleware(
 # ── Serve frontend ────────────────────────────────────
 app.mount(
     "/static",
-    StaticFiles(directory=r"F:\GeoTrack\frontend"),
+    StaticFiles(directory=os.path.join(BASE_DIR, "frontend")),
     name="static"
 )
 
 # ── Routes ────────────────────────────────────────────
 @app.get("/")
 def root():
-    return FileResponse(r"F:\GeoTrack\frontend\index.html")
+    return FileResponse(os.path.join(BASE_DIR, "frontend", "index.html"))
 
 
 @app.get("/reports")
@@ -81,7 +81,7 @@ async def predict_route(file: UploadFile = File(...)):
             f.write(await file.read())
 
         # Run inference
-        pred_mask, pred_rgb, confidence = predict(model, img_path)
+        pred_mask, pred_rgb, confidence = predict_remote(img_path)
         h, w = pred_mask.shape
 
         # Save predicted mask as PNG
@@ -211,4 +211,4 @@ def get_result(filename: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=8000, reload=False)

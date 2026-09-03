@@ -7,3 +7,13 @@ numpy
 Pillow
 segmentation-models-pytorch
 albumentations
+gradio_client
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+supabase
+shapely
+rasterio
+reportlab
+qrcode

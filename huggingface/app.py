@@ -1,4 +1,5 @@
 import gradio as gr
+import numpy as np
 import spaces
 import torch
 from PIL import Image
@@ -19,8 +20,14 @@ def predict_image(image):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     try:
-        _, prediction_rgb, _ = run_prediction(model, image, device)
-        return Image.fromarray(prediction_rgb)
+        prediction_mask, prediction_rgb, confidence = run_prediction(
+            model, image, device
+        )
+        return (
+            Image.fromarray(prediction_rgb),
+            Image.fromarray(prediction_mask.astype(np.uint8), mode="L"),
+            confidence,
+        )
     finally:
         model.to(cpu_device)
 
@@ -28,11 +35,16 @@ def predict_image(image):
 demo = gr.Interface(
     fn=predict_image,
     inputs=gr.Image(type="pil", label="Satellite Image"),
-    outputs=gr.Image(type="pil", label="Land Cover Prediction"),
+    outputs=[
+        gr.Image(type="pil", label="Land Cover Prediction"),
+        gr.Image(type="pil", label="Class Mask", visible=False),
+        gr.Number(label="Confidence", visible=False),
+    ],
+    api_name="predict",
     title="GeoTrack Land Cover Segmentation",
     description="Upload a satellite image to generate a land-cover segmentation map.",
 )
 
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
