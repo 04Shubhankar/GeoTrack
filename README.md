@@ -27,3 +27,6 @@ Use this Render start command from the repository root:
 ```text
 uvicorn backend.app:app --host 0.0.0.0 --port $PORT
 ```
+
+The repository pins Render to Python 3.11.9 in `runtime.txt`. This avoids
+building `pydantic-core` from Rust on Python 3.14.
