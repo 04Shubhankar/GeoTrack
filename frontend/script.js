@@ -13,12 +13,10 @@
   // ── 1. Constants & Configurations ──────────────────────────────────────────
   // If page is running directly on port 8000, use relative paths.
   // If running via Live Server (5500), Vite (5173), or file://, route to http://127.0.0.1:8000
-  const API_BASE = (window.location.protocol.startsWith('http') && window.location.port === '8000')
-    ? ''
-    : 'http://127.0.0.1:8000';
-  const API_HOST = (window.location.protocol.startsWith('http') && window.location.port === '8000')
-    ? window.location.origin
-    : 'http://127.0.0.1:8000';
+  const API_BASE = window.GEOTRACK_API_URL || (
+    window.location.port === '8000' ? '' : 'http://127.0.0.1:8000'
+  );
+  const API_HOST = API_BASE || window.location.origin;
 
   function resolveUrl(url) {
     if (!url) return '';
@@ -29,12 +27,12 @@
   }
 
   const LULC_COLORS = {
-    urban_land:       '#CC4444',  // Warm red — NOT pure #FF0000
-    agriculture_land: '#D4A017',  // Golden yellow
-    rangeland:        '#C8A55B',  // Muted tan
-    forest_land:      '#276749',  // Deep forest green — NEVER neon green
-    water:            '#3182CE',  // Darker/more saturated than UI accent to distinguish
-    barren_land:      '#718096'   // Cool gray — recedes visually
+    urban_land:       '#00FFFF',
+    agriculture_land: '#FFFF00',
+    rangeland:        '#FF00FF',
+    forest_land:      '#00FF00',
+    water:            '#0000FF',
+    barren_land:      '#FFFFFF'
   };
 
   const LULC_LABELS = {
@@ -45,6 +43,10 @@
     water: 'Water Body',
     barren_land: 'Barren Land'
   };
+
+  document.querySelectorAll('.legend-color-dot[data-class]').forEach((swatch) => {
+    swatch.style.backgroundColor = LULC_COLORS[swatch.dataset.class] || 'transparent';
+  });
 
   // Initial geographic center
   const DEFAULT_CENTER = { lat: 38.162, lng: -121.685 };
@@ -62,7 +64,6 @@
     selectedFile: null,
     selectedFileUrl: null,
     activeFilterClass: null,
-    is3D: true,
     currentGeoJSON: null,
     currentFeatures: [],
     currentMetrics: null,
@@ -102,7 +103,6 @@
     // Top Tools
     btnSelectAOI: document.getElementById('btnSelectAOI'),
     btnUseCurrentView: document.getElementById('btnUseCurrentView'),
-    btn3DTilt: document.getElementById('btn3DTilt'),
     btnMeasure: document.getElementById('btnMeasure'),
     btnAttrTable: document.getElementById('btnAttrTable'),
     btnResetView: document.getElementById('btnResetView'),
@@ -120,7 +120,7 @@
     btnCaptureView: document.getElementById('btnCaptureView'),
     aoiBadge: document.getElementById('aoiBadge'),
     aoiDetailsBox: document.getElementById('aoiDetailsBox'),
-    aoiAreaHa: document.getElementById('aoiAreaHa'),
+    aoiAreaM2: document.getElementById('aoiAreaM2'),
     aoiNorth: document.getElementById('aoiNorth'),
     aoiSouth: document.getElementById('aoiSouth'),
     aoiEast: document.getElementById('aoiEast'),
@@ -182,7 +182,6 @@
 
     // Map Viewport Controls & Banners
     earthMap: document.getElementById('earthMap'),
-    earth3dBadge: document.getElementById('earth3dBadge'),
     aoiMapBanner: document.getElementById('aoiMapBanner'),
     btnCancelAOIDraw: document.getElementById('btnCancelAOIDraw'),
     measureBanner: document.getElementById('measureBanner'),
@@ -227,7 +226,7 @@
       zoom: DEFAULT_ZOOM,
       maxZoom: 20,
       mapTypeId: google.maps.MapTypeId.HYBRID,
-      tilt: 45,
+      tilt: 0,
       heading: 0,
       mapTypeControl: false,
       streetViewControl: false,
@@ -255,27 +254,12 @@
       dom.telemetryZoom.textContent = map.getZoom();
     });
 
-    map.addListener('tilt_changed', () => {
-      state.is3D = map.getTilt() > 0;
-      update3DBadge();
-    });
-
     // Configure Data Layer for GeoJSON vectors
     configureGoogleDataLayer();
 
     // Setup Interactive Map Click & Drag Listeners
     setupMapInteractionListeners();
     fetchRecentReports();
-  }
-
-  function update3DBadge() {
-    if (state.is3D) {
-      dom.btn3DTilt.classList.add('active');
-      dom.earth3dBadge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> <span>Google Earth 3D Active (45°)</span>';
-    } else {
-      dom.btn3DTilt.classList.remove('active');
-      dom.earth3dBadge.innerHTML = '<i class="fa-solid fa-map"></i> <span>2D Top-Down Nadir</span>';
-    }
   }
 
   // ── 5. Area of Interest (AOI) Interactive Selection ───────────────────────
@@ -402,20 +386,18 @@
     dom.aoiEast.textContent = `${east}° E`;
     dom.aoiWest.textContent = `${west}° E`;
 
-    // Compute Area in Hectares
-    let areaHa = 0;
+    // Compute area in square meters from the selected geographic bounds.
+    let areaM2 = null;
     if (window.google && window.google.maps && window.google.maps.geometry) {
       const p1 = new google.maps.LatLng(sw.lat(), sw.lng());
       const p2 = new google.maps.LatLng(sw.lat(), ne.lng());
       const p3 = new google.maps.LatLng(ne.lat(), ne.lng());
       const p4 = new google.maps.LatLng(ne.lat(), sw.lng());
       const areaSqM = google.maps.geometry.spherical.computeArea([p1, p2, p3, p4]);
-      areaHa = (areaSqM / 10000).toFixed(1);
-    } else {
-      areaHa = '120.5';
+      areaM2 = areaSqM;
     }
 
-    dom.aoiAreaHa.textContent = `${areaHa} ha`;
+    dom.aoiAreaM2.textContent = areaM2 === null ? '-- m²' : `${areaM2.toFixed(1)} m²`;
     dom.aoiBadge.textContent = 'Selected';
     dom.aoiBadge.style.background = 'rgba(0, 229, 255, 0.15)';
     dom.aoiBadge.style.color = 'var(--accent-cyan)';
@@ -635,7 +617,10 @@
     if (!map) return;
 
     // 1. Raw Satellite Image GroundOverlay
-    const rawUrl = localRawUrl || resolveUrl(data.original_url);
+    const rawUrl = data.original_url ? resolveUrl(data.original_url) : localRawUrl;
+    if (!rawUrl || !data.mask_url) {
+      throw new Error('The API did not return Supabase image URLs for this analysis.');
+    }
     if (rawGroundOverlay) rawGroundOverlay.setMap(null);
     rawGroundOverlay = new google.maps.GroundOverlay(rawUrl, bounds, { opacity: state.layers.rawOpacity });
     if (state.layers.rawVisible) rawGroundOverlay.setMap(map);
@@ -689,10 +674,19 @@
 
     // 4. Update Real Class Breakdown & Analytics
     state.currentMetrics = data;
-    updateClassBreakdownUI(data.class_breakdown || {}, data.confidence || 0.85);
+    updateClassBreakdownUI(data.class_breakdown || {}, data.confidence);
 
     // 5. Setup Download & Export Links
     setupExportHub(data, geojsonData);
+  }
+
+  function polygonAreaM2(coordinates) {
+    if (!window.google || !google.maps.geometry) return null;
+    return coordinates.reduce((area, ring, ringIndex) => {
+      const path = ring.map(([lng, lat]) => new google.maps.LatLng(lat, lng));
+      const ringArea = google.maps.geometry.spherical.computeArea(path);
+      return area + (ringIndex === 0 ? ringArea : -ringArea);
+    }, 0);
   }
 
   function renderGeoJSONVectors(geojsonData) {
@@ -703,10 +697,14 @@
     qcMarkers.forEach(m => m.setMap(null));
     qcMarkers = [];
 
-    // Add unique FIDs and calculate hectares
+    // Add unique FIDs and calculate feature areas from the returned geometry.
     geojsonData.features.forEach((feat, idx) => {
       feat.properties = feat.properties || {};
       feat.properties.fid = idx + 1;
+      if (feat.geometry && feat.geometry.type === 'Polygon') {
+        const areaM2 = polygonAreaM2(feat.geometry.coordinates);
+        if (areaM2 !== null) feat.properties.area_m2 = areaM2;
+      }
 
       const isReview = feat.properties.confidence < 0.65 || feat.properties.qc_flag === 'review';
       if (isReview) {
@@ -793,11 +791,13 @@
     // Render Donut Chart
     renderDonutChart(breakdown);
     dom.donutDominantPct.textContent = `${dominantPct.toFixed(1)}%`;
-    dom.donutDominantClass.textContent = LULC_LABELS[dominantClass] || 'Dominant';
+    dom.donutDominantClass.textContent = LULC_LABELS[dominantClass] || '--';
 
     // Update KPI cards
-    dom.kpiConfidence.textContent = `${((confidence || 0.85) * 100).toFixed(1)}%`;
-    dom.kpiArea.textContent = dom.aoiAreaHa.textContent || '--';
+    dom.kpiConfidence.textContent = Number.isFinite(Number(confidence))
+      ? `${(Number(confidence) * 100).toFixed(1)}%`
+      : '--';
+    dom.kpiArea.textContent = dom.aoiAreaM2.textContent || '-- m²';
     dom.kpiGreenIndex.textContent = `${greenPct.toFixed(1)}%`;
     dom.kpiPatches.textContent = state.currentFeatures.length || Object.keys(breakdown).length;
 
@@ -899,14 +899,16 @@
         fid: e.feature.getProperty('fid'),
         className: e.feature.getProperty('class_name'),
         confidence: e.feature.getProperty('confidence'),
-        areaHa: e.feature.getProperty('area_ha'),
+        areaM2: e.feature.getProperty('area_m2'),
         qcFlag: e.feature.getProperty('qc_flag')
       };
 
       const color = LULC_COLORS[p.className] || '#888888';
       const label = LULC_LABELS[p.className] || p.className;
-      const confPct = ((p.confidence || 0.85) * 100).toFixed(1);
-      const flag = p.qcFlag || (p.confidence < 0.65 ? 'review' : 'ok');
+      const confPct = Number.isFinite(Number(p.confidence))
+        ? `${(Number(p.confidence) * 100).toFixed(1)}%`
+        : '--';
+      const flag = p.qcFlag || 'review';
 
       const content = `
         <div class="popup-card">
@@ -926,6 +928,10 @@
           <div class="popup-row">
             <span>Feature ID:</span>
             <strong>#${p.fid || 1}</strong>
+          </div>
+          <div class="popup-row">
+            <span>Area:</span>
+            <strong>${Number.isFinite(Number(p.areaM2)) ? `${Number(p.areaM2).toFixed(1)} m²` : '--'}</strong>
           </div>
         </div>
       `;
@@ -969,10 +975,11 @@
       const className = p.class_name || 'unknown';
       const color = LULC_COLORS[className] || '#888888';
       const label = LULC_LABELS[className] || className;
-      const conf = ((p.confidence || 0.85) * 100).toFixed(1);
-      const areaHa = p.area_ha ? p.area_ha.toFixed(2) : '--';
-      const areaKm2 = p.area_ha ? (parseFloat(p.area_ha) / 100).toFixed(3) : '--';
-      const flag = p.qc_flag || 'ok';
+      const conf = Number.isFinite(Number(p.confidence))
+        ? (Number(p.confidence) * 100).toFixed(1)
+        : '--';
+      const areaM2 = Number.isFinite(Number(p.area_m2)) ? Number(p.area_m2).toFixed(1) : '--';
+      const flag = p.qc_flag || 'review';
 
       const tr = document.createElement('tr');
       tr.id = `attrRow_${fid}`;
@@ -984,9 +991,8 @@
             ${label}
           </span>
         </td>
-        <td>${conf}%</td>
-        <td>${areaHa} ha</td>
-        <td>${areaKm2} km²</td>
+        <td>${conf === '--' ? '--' : `${conf}%`}</td>
+        <td>${areaM2} m²</td>
         <td>
           <span class="badge-qc ${flag === 'review' ? 'review' : 'ok'}">
             ${flag === 'review' ? 'Review' : 'OK'}
@@ -1078,10 +1084,10 @@
     }
 
     dom.btnExportCSV.onclick = () => {
-      const rows = [['FID', 'Class_Name', 'Confidence', 'Area_Ha', 'QC_Status']];
+      const rows = [['FID', 'Class_Name', 'Confidence', 'Area_m2', 'QC_Status']];
       state.currentFeatures.forEach(f => {
         const p = f.properties || {};
-        rows.push([p.fid, p.class_name, p.confidence, p.area_ha, p.qc_flag]);
+        rows.push([p.fid, p.class_name, p.confidence, p.area_m2, p.qc_flag]);
       });
       const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(',')).join('\n');
       triggerDownload(encodeURI(csvContent), `geotrack_lulc_${Date.now()}.csv`);
@@ -1142,11 +1148,6 @@
   dom.btnRefreshReports.addEventListener('click', fetchRecentReports);
 
   // ── 11. Overlays & Basemaps Controls ──────────────────────────────────────
-  dom.btn3DTilt.addEventListener('click', () => {
-    if (!map) return;
-    map.setTilt(map.getTilt() > 0 ? 0 : 45);
-  });
-
   dom.basemapOptions.forEach(opt => {
     opt.addEventListener('click', function () {
       const type = this.getAttribute('data-maptype');
@@ -1316,9 +1317,8 @@
       if (window.google.maps.geometry) {
         areaSqM = google.maps.geometry.spherical.computeArea(pts);
       }
-      const areaHa = (areaSqM / 10000).toFixed(2);
       const distKm = (distM / 1000).toFixed(2);
-      dom.measureVal.textContent = `Distance: ${distKm} km · Area: ${areaHa} ha`;
+      dom.measureVal.textContent = `Distance: ${distKm} km · Area: ${areaSqM.toFixed(1)} m²`;
     } else {
       const distKm = (distM / 1000).toFixed(2);
       dom.measureVal.textContent = `Distance: ${distM > 1000 ? distKm + ' km' : distM.toFixed(0) + ' m'}`;

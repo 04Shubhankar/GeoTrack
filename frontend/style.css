@@ -31,12 +31,12 @@
   --text-disabled:  #4B5563;
 
   /* LULC Class Colors — DeepGlobe cartographic convention */
-  --lulc-urban:       #CC4444;  /* warm red */
-  --lulc-agriculture: #D4A017;  /* golden yellow */
-  --lulc-rangeland:   #C8A55B;  /* muted tan */
-  --lulc-forest:      #276749;  /* deep forest green */
-  --lulc-water:       #3182CE;  /* distinct from UI accent */
-  --lulc-barren:      #718096;  /* cool gray, recedes */
+  --lulc-urban:       #00FFFF;
+  --lulc-agriculture: #FFFF00;
+  --lulc-rangeland:   #FF00FF;
+  --lulc-forest:      #00FF00;
+  --lulc-water:       #0000FF;
+  --lulc-barren:      #FFFFFF;
   --lulc-unknown:     #2D3748;  /* below-confidence, near-surface */
 
   /* Typography */
@@ -146,7 +146,6 @@ html, body {
 .brand-icon {
   width: 32px;
   height: 32px;
-  background: var(--accent);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -154,6 +153,13 @@ html, body {
   font-size: 15px;
   color: var(--bg-primary);
   flex-shrink: 0;
+}
+
+.brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-text h1 {
@@ -1318,11 +1324,26 @@ select.quick-demo-select {
 }
 
 .attr-close-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 14px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 15px;
   cursor: pointer;
+}
+
+.attr-close-btn:hover,
+.attr-close-btn:focus-visible {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+  outline: none;
 }
 
 .attr-table-container {

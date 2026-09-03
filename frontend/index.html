@@ -25,7 +25,7 @@
 
       <!-- Brand Identity -->
       <div class="brand-icon">
-        <i class="fa-solid fa-earth-americas"></i>
+        <img src="logo.png" alt="GeoTrack logo" />
       </div>
       <div class="brand-text">
         <h1>GeoTrack <span class="brand-badge">Earth Pro</span></h1>
@@ -33,8 +33,6 @@
           <span>U-Net ResNet-34</span>
           <span class="dot-sep">·</span>
           <span>DeepGlobe LULC</span>
-          <span class="dot-sep">·</span>
-          <span style="color: var(--accent-cyan);">mIoU 0.55</span>
         </div>
       </div>
     </div>
@@ -67,10 +65,6 @@
 
       <button id="btnUseCurrentView" class="tool-btn" title="Use Current Map View as AOI">
         <i class="fa-solid fa-expand"></i> <span class="btn-text">Current View</span>
-      </button>
-
-      <button id="btn3DTilt" class="tool-btn" title="Toggle 3D Oblique Earth Perspective">
-        <i class="fa-solid fa-cube"></i> <span class="btn-text">3D Earth</span>
       </button>
 
       <button id="btnMeasure" class="tool-btn" title="Measure Distance & Area">
@@ -150,7 +144,7 @@
             <div class="aoi-details-box" id="aoiDetailsBox" style="display: none;">
               <div class="aoi-detail-row">
                 <span>Selected Area:</span>
-                <strong id="aoiAreaHa">-- ha</strong>
+                <strong id="aoiAreaM2">-- m²</strong>
               </div>
               <div class="aoi-coords-grid">
                 <div><span>North:</span> <strong id="aoiNorth">--</strong></div>
@@ -391,7 +385,7 @@
                 <div class="kpi-lbl">Model Confidence</div>
               </div>
               <div class="kpi-box">
-                <div class="kpi-val" id="kpiArea">-- ha</div>
+                <div class="kpi-val" id="kpiArea">-- m²</div>
                 <div class="kpi-lbl">Total Mapped Area</div>
               </div>
               <div class="kpi-box">
@@ -464,12 +458,6 @@
     <main class="gis-map-container">
       <div id="earthMap"></div>
 
-      <!-- 3D Earth Perspective Status Badge -->
-      <div class="earth-3d-badge" id="earth3dBadge">
-        <i class="fa-solid fa-satellite-dish"></i>
-        <span>Google Earth 3D Active</span>
-      </div>
-
       <!-- AOI Selection Indicator on Map -->
       <div class="aoi-map-banner" id="aoiMapBanner" style="display: none;">
         <i class="fa-solid fa-draw-polygon" style="color: var(--accent-cyan);"></i>
@@ -495,12 +483,12 @@
           </button>
         </div>
         <div class="legend-items" id="legendItems">
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-urban);"></div>Urban Land</div>
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-agriculture);"></div>Agriculture Land</div>
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-rangeland);"></div>Rangeland</div>
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-forest);"></div>Forest Land</div>
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-water);"></div>Water Body</div>
-          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-barren);"></div>Barren Land</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="urban_land"></div>Urban Land</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="agriculture_land"></div>Agriculture Land</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="rangeland"></div>Rangeland</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="forest_land"></div>Forest Land</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="water"></div>Water Body</div>
+          <div class="legend-item"><div class="legend-color-dot" data-class="barren_land"></div>Barren Land</div>
         </div>
       </div>
     </main>
@@ -523,7 +511,7 @@
           <button class="tool-btn" id="btnExportTable" style="padding: 3px 8px; font-size: 0.7rem;">
             <i class="fa-solid fa-file-csv"></i> CSV
           </button>
-          <button class="attr-close-btn" id="attrCloseBtn" title="Close Table">
+          <button class="attr-close-btn" id="attrCloseBtn" type="button" title="Close Table" aria-label="Close attribute table">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
@@ -536,7 +524,7 @@
               <th>FID</th>
               <th>LULC Class</th>
               <th>Confidence</th>
-              <th>Area (Hectares)</th>
+              <th>Area (m²)</th>
               <th>Area (km²)</th>
               <th>QC Status</th>
               <th>Actions</th>
