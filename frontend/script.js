@@ -522,9 +522,10 @@
       formData.append('file', imgBlob, 'satellite_aoi.png');
 
       const predictResp = await sendPredictRequest(formData);
-
-      if (!predictResp.ok) throw new Error(`Backend server status ${predictResp.status}`);
-      const data = await predictResp.json();
+      const data = await predictResp.json().catch(() => ({}));
+      if (!predictResp.ok) {
+        throw new Error(data.error || `Backend server status ${predictResp.status}`);
+      }
       if (data.error) throw new Error(data.error);
 
       // Step 4: Vectorization & Step 5: Area Metrics
@@ -576,9 +577,10 @@
       formData.append('file', state.selectedFile);
 
       const resp = await sendPredictRequest(formData);
-
-      if (!resp.ok) throw new Error(`Backend status ${resp.status}`);
-      const data = await resp.json();
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        throw new Error(data.error || `Backend status ${resp.status}`);
+      }
       if (data.error) throw new Error(data.error);
 
       setPipelineStep(4);

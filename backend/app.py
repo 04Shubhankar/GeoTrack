@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import logging
 from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.responses import JSONResponse, FileResponse
@@ -14,6 +15,8 @@ from backend.huggingface_client import predict_remote
 
 from backend.report_generator import create_report
 from backend.storage import upload_file, save_report_metadata, list_report_metadata
+
+logger = logging.getLogger(__name__)
 
 # ── Setup ─────────────────────────────────────────────
 app   = FastAPI(title="GeoTrack API")
@@ -72,6 +75,7 @@ async def predict_route(file: UploadFile = File(...)):
     - confidence score
     - class breakdown
     """
+    stage = "saving upload"
     try:
         # Save uploaded file
         job_id    = str(uuid.uuid4())[:8]
@@ -80,11 +84,11 @@ async def predict_route(file: UploadFile = File(...)):
         with open(img_path, "wb") as f:
             f.write(await file.read())
 
-        # Run inference
+        stage = "requesting Hugging Face prediction"
         pred_mask, pred_rgb, confidence = predict_remote(img_path)
         h, w = pred_mask.shape
 
-        # Save predicted mask as PNG
+        stage = "uploading prediction mask"
         mask_path = os.path.join(RESULT_DIR, f"{job_id}_mask.png")
         Image.fromarray(pred_rgb).save(mask_path)
         # Upload predicted mask to Supabase
@@ -94,7 +98,7 @@ async def predict_route(file: UploadFile = File(...)):
             destination_path=f"masks/{job_id}_mask.png"
         )
 
-        # Save original resized
+        stage = "uploading original image"
         orig_path = os.path.join(RESULT_DIR, f"{job_id}_original.png")
         Image.open(img_path).convert("RGB")\
              .resize((256, 256)).save(orig_path)
@@ -105,7 +109,7 @@ async def predict_route(file: UploadFile = File(...)):
             destination_path=f"originals/{job_id}_original.png"
         )
 
-        # Generate GeoJSON
+        stage = "generating GeoJSON"
         geojson      = mask_to_geojson(pred_mask, confidence, w, h)
         geojson_path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
         save_geojson(geojson, geojson_path)
@@ -117,7 +121,7 @@ async def predict_route(file: UploadFile = File(...)):
         )
         
 
-        # Class breakdown
+        stage = "calculating class breakdown"
         class_names = [
             "urban_land", "agriculture_land", "rangeland",
             "forest_land", "water", "barren_land"
@@ -129,7 +133,7 @@ async def predict_route(file: UploadFile = File(...)):
             if count > 0:
                 class_pixels[name] = round(count / total_pixels * 100, 2)
 
-        # Generate PDF Report
+        stage = "generating PDF report"
         report_path = os.path.join(REPORT_DIR, f"{job_id}_report.pdf")
         create_report(
             output_path=report_path,
@@ -140,14 +144,14 @@ async def predict_route(file: UploadFile = File(...)):
             class_breakdown=class_pixels,
             geojson_url=geojson_url
         )
-        # Upload PDF report to Supabase
+        stage = "uploading PDF report"
         report_url = upload_file(
             bucket_name="geotrack-reports",
             file_path=report_path,
             destination_path=f"reports/{job_id}_report.pdf"
         )
 
-        # Save iteration metadata to Supabase database
+        stage = "saving report metadata"
         save_report_metadata(
             job_id=job_id,
             confidence=confidence,
@@ -182,7 +186,8 @@ async def predict_route(file: UploadFile = File(...)):
         })
 
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        logger.exception("Prediction failed during stage: %s", stage)
+        return JSONResponse({"error": f"Prediction failed during {stage}: {e}"}, status_code=500)
 
 
 @app.get("/results/{filename}")
