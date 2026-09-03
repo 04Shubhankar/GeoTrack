@@ -5,3 +5,4 @@ torchvision
 numpy
 Pillow
 segmentation-models-pytorch
+albumentations

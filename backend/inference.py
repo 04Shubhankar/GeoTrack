@@ -2,13 +2,14 @@
 
 import torch
 import numpy as np
+from pathlib import Path
 from PIL import Image
 import segmentation_models_pytorch as smp
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 # ── Config ────────────────────────────────────────────
-MODEL_PATH  = r"F:\GeoTrack\model\unet_resnet34_803.pth"
+MODEL_PATH  = Path(__file__).resolve().parents[1] / "model" / "unet_resnet34_803.pth"
 DEVICE      = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TILE_SIZE   = 256
 NUM_CLASSES = 6
@@ -27,7 +28,7 @@ CLASS_NAMES = [
     "forest_land", "water", "barren_land"
 ]
 
-def load_model():
+def load_model(model_path=MODEL_PATH):
     model = smp.Unet(
         encoder_name    = "resnet34",  # must match training
         encoder_weights = None,
@@ -36,7 +37,7 @@ def load_model():
         activation      = None
     )
 
-    state_dict = torch.load(MODEL_PATH, map_location=DEVICE)
+    state_dict = torch.load(model_path, map_location=DEVICE)
 
     # Strip DataParallel 'module.' prefix added during Kaggle training
     state_dict = {k.replace("module.", ""): v for k, v in state_dict.items()}
@@ -48,15 +49,20 @@ def load_model():
     return model
 
 # ── Predict ───────────────────────────────────────────
-def predict(model, image_path: str):
+def predict(model, image_source, device=None):
     """
     Takes image path → returns:
     - pred_mask  : HxW numpy array (class indices)
     - pred_rgb   : HxWx3 numpy array (colorized)
     - confidence : float (mean max softmax probability)
     """
-    # Load image
-    img = np.array(Image.open(image_path).convert("RGB"))
+    device = device or DEVICE
+
+    # Accept both uploaded file paths and images supplied by Gradio.
+    if isinstance(image_source, Image.Image):
+        img = np.array(image_source.convert("RGB"))
+    else:
+        img = np.array(Image.open(image_source).convert("RGB"))
     h, w = img.shape[:2]
 
     # Resize to 256x256
@@ -71,7 +77,7 @@ def predict(model, image_path: str):
         ToTensorV2()
     ])
     tensor = transform(image=img_resized)["image"]\
-             .unsqueeze(0).to(DEVICE)
+             .unsqueeze(0).to(device)
 
     # Inference
     with torch.no_grad():
