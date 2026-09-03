@@ -7,7 +7,7 @@ import segmentation_models_pytorch as smp
 
 
 NUM_CLASSES = 6
-MODEL_PATH = "unet_resnet34_803.pth"
+MODEL_PATH = "huggingface/unet_resnet34_803.pth"
 INPUT_SIZE = 256
 
 CLASS_COLORS = np.array([
