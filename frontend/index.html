@@ -2,488 +2,608 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GeoTrack — LULC Mapping</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0d0d2b;
-      color: #ffffff;
-      min-height: 100vh;
-    }
-
-    /* ── Header ── */
-    header {
-      background: #1a1a3e;
-      padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 2px solid #00e5ff;
-    }
-
-    header h1 {
-      font-size: 1.4rem;
-      color: #00e5ff;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    header p {
-      font-size: 0.8rem;
-      color: #aaaacc;
-      margin-top: 2px;
-    }
-
-    /* ── Main ── */
-    main {
-      max-width: 1100px;
-      margin: 40px auto;
-      padding: 0 24px;
-    }
-
-    /* ── Upload Section ── */
-    .upload-section {
-      background: #1a1a3e;
-      border: 2px dashed #00e5ff;
-      border-radius: 12px;
-      padding: 40px;
-      text-align: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-bottom: 24px;
-    }
-
-    .upload-section:hover { background: #1e1e4a; }
-
-    .upload-section h2 {
-      font-size: 1.1rem;
-      color: #00e5ff;
-      margin-bottom: 8px;
-    }
-
-    .upload-section p {
-      font-size: 0.85rem;
-      color: #aaaacc;
-      margin-bottom: 20px;
-    }
-
-    input[type="file"] { display: none; }
-
-    .btn {
-      background: #00e5ff;
-      color: #0d0d2b;
-      border: none;
-      padding: 10px 28px;
-      border-radius: 6px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    .btn:hover { opacity: 0.85; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .btn-outline {
-      background: transparent;
-      color: #00e5ff;
-      border: 2px solid #00e5ff;
-      padding: 8px 20px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: inline-block;
-    }
-
-    .btn-outline:hover {
-      background: #00e5ff;
-      color: #0d0d2b;
-    }
-
-    /* ── Status ── */
-    .status {
-      text-align: center;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 24px;
-      font-size: 0.9rem;
-      display: none;
-    }
-
-    .status.loading {
-      background: #1a1a3e;
-      color: #00e5ff;
-      display: block;
-    }
-
-    .status.error {
-      background: #3e1a1a;
-      color: #ff4081;
-      display: block;
-    }
-
-    /* ── Results ── */
-    .results { display: none; }
-    .results.visible { display: block; }
-
-    .results-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-
-    .result-card {
-      background: #1a1a3e;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid #2a2a5e;
-    }
-
-    .result-card h3 {
-      padding: 12px 16px;
-      font-size: 0.9rem;
-      color: #00e5ff;
-      background: #12122e;
-      border-bottom: 1px solid #2a2a5e;
-    }
-
-    .result-card img {
-      width: 100%;
-      height: 280px;
-      object-fit: cover;
-      display: block;
-    }
-
-    /* ── Metrics ── */
-    .metrics {
-      background: #1a1a3e;
-      border-radius: 10px;
-      padding: 20px 24px;
-      margin-bottom: 24px;
-      border: 1px solid #2a2a5e;
-    }
-
-    .metrics h3 {
-      font-size: 0.95rem;
-      color: #00e5ff;
-      margin-bottom: 16px;
-    }
-
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
-    .metric-item {
-      text-align: center;
-    }
-
-    .metric-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    .metric-label {
-      font-size: 0.75rem;
-      color: #aaaacc;
-      margin-top: 4px;
-    }
-
-    /* ── Class Breakdown ── */
-    .class-breakdown { margin-top: 16px; }
-
-    .class-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
-
-    .class-color {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      flex-shrink: 0;
-    }
-
-    .class-name {
-      font-size: 0.82rem;
-      color: #ccccee;
-      width: 160px;
-      flex-shrink: 0;
-    }
-
-    .class-bar-bg {
-      flex: 1;
-      background: #0d0d2b;
-      border-radius: 4px;
-      height: 8px;
-      overflow: hidden;
-    }
-
-    .class-bar {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.6s ease;
-    }
-
-    .class-pct {
-      font-size: 0.8rem;
-      color: #aaaacc;
-      width: 40px;
-      text-align: right;
-    }
-
-    /* ── Legend ── */
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.78rem;
-      color: #ccccee;
-    }
-
-    .legend-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 2px;
-      flex-shrink: 0;
-    }
-
-    /* ── Download ── */
-    .download-section {
-      text-align: center;
-      padding: 20px;
-      background: #1a1a3e;
-      border-radius: 10px;
-      border: 1px solid #2a2a5e;
-    }
-
-    .download-section p {
-      font-size: 0.85rem;
-      color: #aaaacc;
-      margin-bottom: 12px;
-    }
-
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 24px;
-      color: #555577;
-      font-size: 0.78rem;
-      margin-top: 40px;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>GeoTrack — LULC Satellite GIS & Earth Analysis Platform</title>
+  
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <!-- Stylesheet (FastAPI static mount + relative fallback) -->
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<header>
-  <div>
-    <h1>🌍 GeoTrack</h1>
-    <p>AI-Powered LULC Mapping · U-Net ResNet34 · DeepGlobe Trained</p>
-  </div>
-</header>
+<div class="gis-app">
+  <!-- ── Top Header / GIS Bar ────────────────────────────────────────────── -->
+  <header class="gis-header">
+    <div class="header-left">
+      <!-- Hamburger Menu for Mobile -->
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open Sidebar Menu">
+        <i class="fa-solid fa-bars"></i>
+      </button>
 
-<main>
-
-  <!-- Upload -->
-  <div class="upload-section" onclick="document.getElementById('fileInput').click()">
-    <h2>Upload Orthophoto or Satellite Image</h2>
-    <p>Supported formats: JPG, PNG, TIF · Max 50MB</p>
-    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.tif,.tiff"
-           onchange="handleFileSelect(event)" />
-    <button class="btn" onclick="event.stopPropagation();"
-            id="uploadBtn" disabled>
-      Run GeoTrack
-    </button>
-  </div>
-
-  <!-- Status -->
-  <div class="status" id="status"></div>
-
-  <!-- Results -->
-  <div class="results" id="results">
-
-    <!-- Images -->
-    <div class="results-grid">
-      <div class="result-card">
-        <h3>📥 Input Image</h3>
-        <img id="originalImg" src="" alt="Original" />
+      <!-- Brand Identity -->
+      <div class="brand-icon">
+        <i class="fa-solid fa-earth-americas"></i>
       </div>
-      <div class="result-card">
-        <h3>🗺️ Predicted LULC Mask</h3>
-        <img id="maskImg" src="" alt="Predicted Mask" />
-      </div>
-    </div>
-
-    <!-- Metrics -->
-    <div class="metrics">
-      <h3>📊 Prediction Metrics</h3>
-      <div class="metrics-grid">
-        <div class="metric-item">
-          <div class="metric-value" id="confidenceVal">—</div>
-          <div class="metric-label">Confidence Score</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-value" id="classCount">—</div>
-          <div class="metric-label">Classes Detected</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-value">0.55</div>
-          <div class="metric-label">Model mIoU</div>
-        </div>
-        <div class="metric-item">
-          <div class="metric-value">6</div>
-          <div class="metric-label">LULC Classes</div>
-        </div>
-      </div>
-
-      <!-- Class Breakdown -->
-      <div class="class-breakdown" id="classBreakdown"></div>
-
-      <!-- Legend -->
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(0,255,255)"></div>Urban Land
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(255,255,0)"></div>Agriculture
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(255,0,255)"></div>Rangeland
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(0,255,0)"></div>Forest
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(0,0,255)"></div>Water
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:rgb(255,255,255)"></div>Barren Land
+      <div class="brand-text">
+        <h1>GeoTrack <span class="brand-badge">Earth Pro</span></h1>
+        <div class="brand-subtitle">
+          <span>U-Net ResNet-34</span>
+          <span class="dot-sep">·</span>
+          <span>DeepGlobe LULC</span>
+          <span class="dot-sep">·</span>
+          <span style="color: var(--accent-cyan);">mIoU 0.55</span>
         </div>
       </div>
     </div>
 
-    <!-- Download -->
-    <div class="download-section">
-      <p>Download GIS-ready vector output for use in QGIS, ArcGIS, or any GIS platform</p>
-      <a class="btn-outline" id="geojsonLink" href="#" download>
-        ⬇ Download GeoJSON
-      </a>
+    <!-- Center: Live Coordinates & Earth Telemetry -->
+    <div class="gis-telemetry">
+      <div class="telemetry-item">
+        <span class="telemetry-label">CRS:</span>
+        <span class="telemetry-val">EPSG:4326 (WGS84)</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">Lat:</span>
+        <span class="telemetry-val" id="telemetryLat">--.----° N</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">Lon:</span>
+        <span class="telemetry-val" id="telemetryLon">--.----° E</span>
+      </div>
+      <div class="telemetry-item">
+        <span class="telemetry-label">Zoom:</span>
+        <span class="telemetry-val" id="telemetryZoom">14</span>
+      </div>
     </div>
 
-  </div>
-</main>
+    <!-- Right: Quick Action Tools -->
+    <div class="gis-header-tools">
+      <button id="btnSelectAOI" class="tool-btn primary" title="Click & Drag to Select Area on Map">
+        <i class="fa-solid fa-vector-square"></i> <span class="btn-text">Select Area</span>
+      </button>
 
-<footer>
-  GeoTrack · U-Net + ResNet34 · DeepGlobe Land Cover · Val mIoU 0.55 · IDEATHON 2026
-</footer>
+      <button id="btnUseCurrentView" class="tool-btn" title="Use Current Map View as AOI">
+        <i class="fa-solid fa-expand"></i> <span class="btn-text">Current View</span>
+      </button>
 
-<script>
-  const CLASS_COLORS = {
-    urban_land       : '#00ffff',
-    agriculture_land : '#ffff00',
-    rangeland        : '#ff00ff',
-    forest_land      : '#00ff00',
-    water            : '#0000ff',
-    barren_land      : '#ffffff',
-  };
+      <button id="btn3DTilt" class="tool-btn" title="Toggle 3D Oblique Earth Perspective">
+        <i class="fa-solid fa-cube"></i> <span class="btn-text">3D Earth</span>
+      </button>
 
-  let selectedFile = null;
+      <button id="btnMeasure" class="tool-btn" title="Measure Distance & Area">
+        <i class="fa-solid fa-ruler-combined"></i> <span class="btn-text">Measure</span>
+      </button>
 
-  function handleFileSelect(event) {
-    selectedFile = event.target.files[0];
-    if (selectedFile) {
-      document.getElementById('uploadBtn').disabled = false;
-      document.getElementById('uploadBtn').textContent =
-        `Run GeoTrack — ${selectedFile.name}`;
-    }
-  }
+      <button id="btnAttrTable" class="tool-btn" title="Toggle Attribute Table">
+        <i class="fa-solid fa-table"></i> <span class="btn-text">Table</span>
+      </button>
 
-  document.getElementById('uploadBtn').addEventListener('click', async () => {
-    if (!selectedFile) return;
+      <button id="btnResetView" class="tool-btn" title="Reset View to Extent">
+        <i class="fa-solid fa-crosshairs"></i>
+      </button>
 
-    const statusEl  = document.getElementById('status');
-    const resultsEl = document.getElementById('results');
+      <button id="btnFullscreen" class="tool-btn" title="Toggle Fullscreen">
+        <i class="fa-solid fa-maximize"></i>
+      </button>
+    </div>
+  </header>
 
-    // Show loading
-    statusEl.className  = 'status loading';
-    statusEl.textContent = '⏳ Running GeoTrack pipeline...';
-    resultsEl.className  = 'results';
-    document.getElementById('uploadBtn').disabled = true;
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+  <!-- ── Main Workspace: Sidebar & Google Earth Stage ───────────────────── -->
+  <div class="gis-workspace">
+    <!-- Left Sidebar (Collapsible & Mobile Responsive) -->
+    <aside class="gis-sidebar" id="gisSidebar">
+      <!-- Desktop Sidebar Toggle Tab -->
+      <button class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+        <i class="fa-solid fa-chevron-left" id="sidebarToggleIcon"></i>
+      </button>
 
-      const response = await fetch('http://localhost:8000/predict', {
-        method : 'POST',
-        body   : formData
-      });
+      <!-- Sidebar Tab Navigation -->
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-tab="paneIngest" id="tabBtnIngest" title="Area Selection & Inference">
+          <i class="fa-solid fa-crosshairs"></i> AOI & Run
+        </button>
+        <button class="tab-btn" data-tab="paneLayers" id="tabBtnLayers" title="Google Earth Layers">
+          <i class="fa-solid fa-layer-group"></i> Layers
+        </button>
+        <button class="tab-btn" data-tab="paneClasses" id="tabBtnClasses" title="LULC Classes & Metrics">
+          <i class="fa-solid fa-chart-pie"></i> LULC
+        </button>
+        <button class="tab-btn" data-tab="paneMetrics" id="tabBtnMetrics" title="Analytics & Export">
+          <i class="fa-solid fa-file-export"></i> Export
+        </button>
+        <button class="sidebar-mobile-close" id="sidebarMobileClose" title="Close Panel">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
-      const data = await response.json();
-
-      if (data.error) throw new Error(data.error);
-
-      // Populate results
-      document.getElementById('originalImg').src =
-        `http://localhost:8000${data.original_url}`;
-      document.getElementById('maskImg').src =
-        `http://localhost:8000${data.mask_url}`;
-      document.getElementById('confidenceVal').textContent =
-        (data.confidence * 100).toFixed(1) + '%';
-      document.getElementById('classCount').textContent =
-        Object.keys(data.class_breakdown).length;
-
-      // GeoJSON download
-      document.getElementById('geojsonLink').href =
-        `http://localhost:8000${data.geojson_url}`;
-
-      // Class breakdown bars
-      const breakdownEl = document.getElementById('classBreakdown');
-      breakdownEl.innerHTML = '';
-      for (const [cls, pct] of Object.entries(data.class_breakdown)) {
-        const color = CLASS_COLORS[cls] || '#888888';
-        breakdownEl.innerHTML += `
-          <div class="class-row">
-            <div class="class-color" style="background:${color}"></div>
-            <div class="class-name">${cls.replace('_', ' ')}</div>
-            <div class="class-bar-bg">
-              <div class="class-bar"
-                   style="width:${pct}%;background:${color}"></div>
+      <!-- Sidebar Tab Panes -->
+      <div class="sidebar-content">
+        <!-- ── TAB 1: AREA SELECTION & LIVE INFERENCE ────────────────────── -->
+        <div class="tab-pane active" id="paneIngest">
+          <!-- Area of Interest (AOI) Selection Card -->
+          <div class="panel-card" id="aoiCard">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-vector-square"></i> Area of Interest (AOI)</span>
+              <span class="brand-badge" id="aoiBadge">None Selected</span>
             </div>
-            <div class="class-pct">${pct}%</div>
-          </div>`;
-      }
 
-      // Show results
-      statusEl.className  = 'status';
-      resultsEl.className = 'results visible';
+            <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4;">
+              Navigate to any location on the map, then select an area to run live LULC satellite classification:
+            </p>
 
-    } catch (err) {
-      statusEl.className  = 'status error';
-      statusEl.textContent = `❌ Error: ${err.message}`;
-      document.getElementById('uploadBtn').disabled = false;
-    }
-  });
+            <div class="aoi-action-buttons">
+              <button class="tool-btn primary" id="btnDrawBox" style="flex: 1; justify-content: center; padding: 8px;">
+                <i class="fa-solid fa-draw-polygon"></i> Draw Box on Map
+              </button>
+              <button class="tool-btn" id="btnCaptureView" style="flex: 1; justify-content: center; padding: 8px;">
+                <i class="fa-solid fa-camera"></i> Use Map View
+              </button>
+            </div>
+
+            <!-- AOI Coordinates & Area Details Box -->
+            <div class="aoi-details-box" id="aoiDetailsBox" style="display: none;">
+              <div class="aoi-detail-row">
+                <span>Selected Area:</span>
+                <strong id="aoiAreaHa">-- ha</strong>
+              </div>
+              <div class="aoi-coords-grid">
+                <div><span>North:</span> <strong id="aoiNorth">--</strong></div>
+                <div><span>South:</span> <strong id="aoiSouth">--</strong></div>
+                <div><span>East:</span> <strong id="aoiEast">--</strong></div>
+                <div><span>West:</span> <strong id="aoiWest">--</strong></div>
+              </div>
+              <button class="tool-btn" id="btnClearAOI" style="margin-top: 6px; font-size: 0.7rem; align-self: flex-end;">
+                <i class="fa-solid fa-trash-can"></i> Clear Selection
+              </button>
+            </div>
+
+            <!-- Primary Action: Analyse Selected Area -->
+            <button type="button" class="btn-run-inference" id="btnAnalyseAOI" disabled>
+              <i class="fa-solid fa-satellite-dish"></i> Analyse Selected Area
+            </button>
+          </div>
+
+          <!-- Secondary Option: Direct File Upload -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Or Upload Orthophoto</span>
+              <span class="brand-badge">GeoTIFF / PNG / JPG</span>
+            </div>
+
+            <div class="drop-zone" id="dropZone">
+              <i class="fa-regular fa-image drop-zone-icon"></i>
+              <div class="drop-zone-title">Upload Custom Satellite Image</div>
+              <div class="drop-zone-sub">Drag & drop image file or browse up to 50MB</div>
+              <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.tif,.tiff" style="display: none;" />
+            </div>
+
+            <!-- File Selected Preview -->
+            <div class="file-preview-card" id="filePreview">
+              <div class="file-info">
+                <i class="fa-regular fa-file-image"></i>
+                <div class="file-meta">
+                  <div class="file-name" id="fileName">scene.tif</div>
+                  <div class="file-size" id="fileSize">14.2 MB</div>
+                </div>
+              </div>
+              <button id="btnRemoveFile" class="tool-btn" style="padding: 4px 8px;" title="Clear File">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Run Classification for File Upload -->
+            <button type="button" class="btn-run-inference" id="btnRunInference" disabled style="background: var(--bg-tertiary); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); box-shadow: none;">
+              <i class="fa-solid fa-play"></i> Analyse Uploaded File
+            </button>
+          </div>
+
+          <!-- 5-Step Animated Pipeline Stepper -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-microchip"></i> Processing Pipeline</span>
+              <span id="pipelineStatusBadge" class="brand-badge" style="background: transparent; border-color: var(--border-strong); color: var(--text-muted);">Idle</span>
+            </div>
+
+            <div class="pipeline-stepper" id="pipelineStepper">
+              <div class="step-item" id="step1">
+                <div class="step-icon"><i class="fa-solid fa-satellite"></i></div>
+                <span>1. Capturing Satellite Imagery for Selected AOI</span>
+              </div>
+              <div class="step-item" id="step2">
+                <div class="step-icon"><i class="fa-solid fa-brain"></i></div>
+                <span>2. ResNet-34 Feature Extraction</span>
+              </div>
+              <div class="step-item" id="step3">
+                <div class="step-icon"><i class="fa-solid fa-network-wired"></i></div>
+                <span>3. U-Net 6-Class Pixel Classification</span>
+              </div>
+              <div class="step-item" id="step4">
+                <div class="step-icon"><i class="fa-solid fa-draw-polygon"></i></div>
+                <span>4. Rasterio Polygon Vectorization</span>
+              </div>
+              <div class="step-item" id="step5">
+                <div class="step-icon"><i class="fa-solid fa-file-shield"></i></div>
+                <span>5. Spatial Area Metrics & PDF Report</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 2: GOOGLE EARTH LAYERS & STYLING ──────────────────────── -->
+        <div class="tab-pane" id="paneLayers">
+          <!-- Google Earth Basemap Modes -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-globe"></i> Google Earth View</span>
+            </div>
+            <div class="basemap-selector">
+              <div class="basemap-opt active" data-maptype="hybrid">
+                <i class="fa-solid fa-satellite"></i> Earth Hybrid
+              </div>
+              <div class="basemap-opt" data-maptype="satellite">
+                <i class="fa-solid fa-earth-americas"></i> Satellite Raw
+              </div>
+              <div class="basemap-opt" data-maptype="terrain">
+                <i class="fa-solid fa-mountain"></i> 3D Terrain
+              </div>
+              <div class="basemap-opt" data-maptype="roadmap">
+                <i class="fa-solid fa-road"></i> Vector Map
+              </div>
+            </div>
+          </div>
+
+          <!-- Operational GIS Overlays -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-layer-group"></i> GIS Overlays</span>
+            </div>
+
+            <div class="layer-list">
+              <!-- Raw Imagery Overlay -->
+              <div class="layer-item">
+                <div class="layer-row-top">
+                  <div class="layer-label-group">
+                    <button class="layer-eye-btn" id="toggleRaw" title="Toggle Raw Image">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <span class="layer-name">Raw Satellite Imagery</span>
+                  </div>
+                  <span class="layer-badge">Raster</span>
+                </div>
+                <div class="opacity-slider-row">
+                  <span>Opacity:</span>
+                  <input type="range" min="0" max="100" value="100" class="gis-slider" id="opacityRaw" />
+                  <span id="opacityRawVal" style="width: 28px; text-align: right;">100%</span>
+                </div>
+              </div>
+
+              <!-- LULC Mask Overlay -->
+              <div class="layer-item">
+                <div class="layer-row-top">
+                  <div class="layer-label-group">
+                    <button class="layer-eye-btn" id="toggleMask" title="Toggle LULC Mask">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <span class="layer-name">LULC Classification Mask</span>
+                  </div>
+                  <span class="layer-badge">Raster</span>
+                </div>
+                <div class="opacity-slider-row">
+                  <span>Opacity:</span>
+                  <input type="range" min="0" max="100" value="75" class="gis-slider" id="opacityMask" />
+                  <span id="opacityMaskVal" style="width: 28px; text-align: right;">75%</span>
+                </div>
+              </div>
+
+              <!-- GeoJSON Vector Polygons -->
+              <div class="layer-item">
+                <div class="layer-row-top">
+                  <div class="layer-label-group">
+                    <button class="layer-eye-btn" id="toggleVector" title="Toggle Vector Layer">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <span class="layer-name">GeoJSON Vector Polygons</span>
+                  </div>
+                  <span class="layer-badge">Vector</span>
+                </div>
+                <div class="opacity-slider-row">
+                  <span>Opacity:</span>
+                  <input type="range" min="0" max="100" value="65" class="gis-slider" id="opacityVector" />
+                  <span id="opacityVectorVal" style="width: 28px; text-align: right;">65%</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                  <label style="font-size: 0.72rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="checkPolygonOutline" checked /> Outlines
+                  </label>
+                  <label style="font-size: 0.72rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="checkHoverHighlight" checked /> Hover Glow
+                  </label>
+                </div>
+              </div>
+
+              <!-- QC Review Flag Layer -->
+              <div class="layer-item">
+                <div class="layer-row-top">
+                  <div class="layer-label-group">
+                    <button class="layer-eye-btn" id="toggleQC" title="Toggle Low-Confidence Review Flags">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
+                    <span class="layer-name">QC Review Flags (&lt;65% Conf.)</span>
+                  </div>
+                  <span class="layer-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">QC Flag</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 3: LULC CLASSES & ANALYTICS ───────────────────────────── -->
+        <div class="tab-pane" id="paneClasses">
+          <!-- Donut Summary Visualization -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-chart-pie"></i> Land Cover Composition</span>
+              <button id="btnResetFilter" class="tool-btn" style="padding: 2px 8px; font-size: 0.7rem;">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+              </button>
+            </div>
+
+            <div class="chart-container">
+              <svg class="donut-svg" id="donutSvg" viewBox="0 0 42 42"></svg>
+              <div class="donut-center-text">
+                <div class="donut-center-val" id="donutDominantPct">--%</div>
+                <div class="donut-center-lbl" id="donutDominantClass">Dominant</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DeepGlobe 6-Class Matrix -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-list-check"></i> DeepGlobe 6 Classes</span>
+              <span style="font-size: 0.68rem; color: var(--text-muted);">Tap to isolate</span>
+            </div>
+
+            <div class="class-matrix" id="classMatrix">
+              <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.75rem;">
+                Select an area on the map and click <strong>Analyse</strong> to populate class metrics.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── TAB 4: SPATIAL METRICS & EXPORT ───────────────────────────── -->
+        <div class="tab-pane" id="paneMetrics">
+          <!-- KPI Summary -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-gauge-high"></i> Spatial Analysis KPIs</span>
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-box">
+                <div class="kpi-val" id="kpiConfidence">--%</div>
+                <div class="kpi-lbl">Model Confidence</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-val" id="kpiArea">-- ha</div>
+                <div class="kpi-lbl">Total Mapped Area</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-val" id="kpiPatches">--</div>
+                <div class="kpi-lbl">Vector Patches</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-val" id="kpiGreenIndex">--%</div>
+                <div class="kpi-lbl">Green Cover Ratio</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- QA Banner -->
+          <div class="qc-banner" id="qcBanner">
+            <i class="fa-solid fa-circle-check" style="font-size: 1.2rem; color: var(--status-success);" id="qcBannerIcon"></i>
+            <div>
+              <strong id="qcBannerTitle">Quality Assurance: PENDING</strong>
+              <div id="qcBannerSub" style="color: var(--text-muted); font-size: 0.7rem;">
+                Select an area on the map to run automated U-Net inference.
+              </div>
+            </div>
+          </div>
+
+          <!-- Export Hub -->
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-download"></i> GIS Export Hub</span>
+            </div>
+            <div class="export-btn-group">
+              <button class="export-btn" id="btnDownloadGeoJSON">
+                <span><i class="fa-solid fa-file-code"></i> GeoJSON FeatureCollection</span>
+                <span class="export-badge">QGIS / ArcGIS</span>
+              </button>
+              <button class="export-btn" id="btnDownloadMask">
+                <span><i class="fa-solid fa-file-image"></i> Classified LULC Raster Mask</span>
+                <span class="export-badge">PNG 256×256</span>
+              </button>
+              <button class="export-btn" id="btnDownloadReport">
+                <span><i class="fa-solid fa-file-pdf"></i> Analytical Report</span>
+                <span class="export-badge">PDF</span>
+              </button>
+              <button class="export-btn" id="btnExportCSV">
+                <span><i class="fa-solid fa-file-csv"></i> Attribute Table Records</span>
+                <span class="export-badge">CSV</span>
+              </button>
+              <button class="export-btn" id="btnCopyGeoJSON">
+                <span><i class="fa-solid fa-copy"></i> Copy GeoJSON to Clipboard</span>
+                <span class="export-badge">JSON</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel-card">
+            <div class="panel-card-header">
+              <span class="panel-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Analyses</span>
+              <button class="tool-btn" id="btnRefreshReports" title="Refresh reports">
+                <i class="fa-solid fa-rotate"></i>
+              </button>
+            </div>
+            <div class="report-history" id="reportHistory">
+              <div class="report-history-empty">Loading saved analyses...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Center Stage: Google Earth Map Viewport ───────────────────────── -->
+    <main class="gis-map-container">
+      <div id="earthMap"></div>
+
+      <!-- 3D Earth Perspective Status Badge -->
+      <div class="earth-3d-badge" id="earth3dBadge">
+        <i class="fa-solid fa-satellite-dish"></i>
+        <span>Google Earth 3D Active</span>
+      </div>
+
+      <!-- AOI Selection Indicator on Map -->
+      <div class="aoi-map-banner" id="aoiMapBanner" style="display: none;">
+        <i class="fa-solid fa-draw-polygon" style="color: var(--accent-cyan);"></i>
+        <span>Click and drag on the map to define the Area of Interest</span>
+        <button id="btnCancelAOIDraw" class="tool-btn" style="padding: 2px 8px; font-size: 0.7rem;">Cancel</button>
+      </div>
+
+      <!-- Live Measurement Banner -->
+      <div class="measure-readout-banner" id="measureBanner">
+        <i class="fa-solid fa-ruler-combined" style="color: var(--accent-cyan);"></i>
+        <span>Measure Mode:</span>
+        <span class="measure-val" id="measureVal">Click Earth points to measure distance</span>
+        <button id="btnFinishMeasure" class="tool-btn primary" style="padding: 2px 8px; font-size: 0.72rem;">Done</button>
+        <button id="btnClearMeasure" class="tool-btn" style="padding: 2px 8px; font-size: 0.72rem;">Clear</button>
+      </div>
+
+      <!-- Floating Dynamic Map Legend -->
+      <div class="gis-floating-legend" id="floatingLegend">
+        <div class="legend-header">
+          <span class="legend-title"><i class="fa-solid fa-palette"></i> LULC Legend</span>
+          <button id="btnToggleLegend" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+            <i class="fa-solid fa-chevron-down" id="legendChevron"></i>
+          </button>
+        </div>
+        <div class="legend-items" id="legendItems">
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-urban);"></div>Urban Land</div>
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-agriculture);"></div>Agriculture Land</div>
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-rangeland);"></div>Rangeland</div>
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-forest);"></div>Forest Land</div>
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-water);"></div>Water Body</div>
+          <div class="legend-item"><div class="legend-color-dot" style="background: var(--lulc-barren);"></div>Barren Land</div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ── Bottom Collapsible GIS Attribute Table Drawer ─────────────────── -->
+    <div class="gis-attribute-drawer collapsed" id="attrDrawer">
+      <div class="attr-drawer-header">
+        <div class="attr-title-group">
+          <span class="attr-title"><i class="fa-solid fa-table"></i> Vector Parcel Attribute Table</span>
+          <span class="attr-feature-count" id="attrFeatureCount">0 Features</span>
+        </div>
+
+        <div class="attr-controls">
+          <input type="text" id="attrSearchInput" class="attr-search-input" placeholder="Search class or FID..." />
+          <select id="attrQcFilter" class="quick-demo-select" style="padding: 3px 6px; font-size: 0.7rem;">
+            <option value="all">All QC</option>
+            <option value="ok">QC: OK</option>
+            <option value="review">QC: Review</option>
+          </select>
+          <button class="tool-btn" id="btnExportTable" style="padding: 3px 8px; font-size: 0.7rem;">
+            <i class="fa-solid fa-file-csv"></i> CSV
+          </button>
+          <button class="attr-close-btn" id="attrCloseBtn" title="Close Table">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="attr-table-container">
+        <table class="attr-table" id="attrTable">
+          <thead>
+            <tr>
+              <th>FID</th>
+              <th>LULC Class</th>
+              <th>Confidence</th>
+              <th>Area (Hectares)</th>
+              <th>Area (km²)</th>
+              <th>QC Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="attrTableBody">
+            <!-- Populated dynamically via script.js -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Mobile Bottom Navigation Bar ──────────────────────────────────── -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <button class="mobile-nav-item active" data-action="map">
+      <i class="fa-solid fa-earth-americas"></i>
+      <span>Earth</span>
+    </button>
+    <button class="mobile-nav-item" data-action="aoi">
+      <i class="fa-solid fa-crosshairs"></i>
+      <span>AOI</span>
+    </button>
+    <button class="mobile-nav-item" data-action="lulc">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>LULC</span>
+    </button>
+    <button class="mobile-nav-item" data-action="layers">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Layers</span>
+    </button>
+    <button class="mobile-nav-item" data-action="table">
+      <i class="fa-solid fa-table"></i>
+      <span>Table</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Google Maps / Earth API -->
+<script>
+  function initGoogleMapsCallback() {
+    // Google Maps is ready — GeoTrack boots itself via DOMContentLoaded
+  }
+</script>
+<script 
+  src="https://maps.googleapis.com/maps/api/js?v=weekly&libraries=geometry,drawing&callback=initGoogleMapsCallback"
+  async defer>
 </script>
 
+
+<!-- All controls are app actions, never native form submissions. -->
+<script>
+  (function() {
+    var s = document.createElement('script');
+    s.src = window.location.port === '8000' ? '/static/script.js' : 'script.js';
+    document.body.appendChild(s);
+  })();
+</script>
+
+<!-- GeoTrack Application Script -->
+<script src="/static/script.js"></script>
+<script>
+  if (typeof window.GeoTrackAppLoaded === 'undefined') {
+    var fallbackScript = document.createElement('script');
+    fallbackScript.src = 'script.js';
+    document.body.appendChild(fallbackScript);
+  }
+</script>
 </body>
 </html>
