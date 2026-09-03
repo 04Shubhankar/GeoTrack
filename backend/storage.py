@@ -73,3 +73,13 @@ def save_report_metadata(
     except Exception:
         # If the table or schema is not configured yet, ignore silently.
         pass
+
+
+def list_report_metadata(limit: int = 50) -> list[dict]:
+    """Return the most recent report metadata records for the frontend."""
+    response = supabase.table("geotrack_metadata").select("*").execute()
+    records = response.data or []
+
+    # Metadata rows created by older schemas may not have created_at.
+    records.sort(key=lambda record: record.get("created_at", ""), reverse=True)
+    return records[:limit]

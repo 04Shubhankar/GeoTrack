@@ -4,7 +4,7 @@ import os
 import uuid
 import numpy as np
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Query
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +14,7 @@ from inference import load_model, predict
 from vectorize import mask_to_geojson, save_geojson
 
 from report_generator import create_report
-from storage import upload_file, save_report_metadata
+from storage import upload_file, save_report_metadata, list_report_metadata
 
 # ── Setup ─────────────────────────────────────────────
 app   = FastAPI(title="GeoTrack API")
@@ -52,6 +52,15 @@ app.mount(
 @app.get("/")
 def root():
     return FileResponse(r"F:\GeoTrack\frontend\index.html")
+
+
+@app.get("/reports")
+def reports(limit: int = Query(default=50, ge=1, le=100)):
+    """Return report metadata stored in Supabase for the dashboard."""
+    try:
+        return {"reports": list_report_metadata(limit)}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.post("/predict")
@@ -166,10 +175,10 @@ async def predict_route(file: UploadFile = File(...)):
             "job_id"         : job_id,
             "confidence"     : confidence,
             "class_breakdown": class_pixels,
-            "mask_url"       : f"/results/{job_id}_mask.png",
-            "original_url"   : f"/results/{job_id}_original.png",
-            "geojson_url"    : f"/results/{job_id}_output.geojson",
-            "report_url"     : f"/results/{job_id}_report.pdf"
+            "mask_url"       : mask_image_url,
+            "original_url"   : original_image_url,
+            "geojson_url"    : geojson_url,
+            "report_url"     : report_url
         })
 
     except Exception as e:
