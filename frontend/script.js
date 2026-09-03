@@ -10,6 +10,17 @@
 
   window.GeoTrackAppLoaded = true;
 
+  document.addEventListener('click', (event) => {
+    const closeButton = event.target.closest('#attrCloseBtn');
+    if (!closeButton) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('attrDrawer').hidden = true;
+    document.getElementById('attrDrawer').classList.add('collapsed');
+    document.getElementById('btnAttrTable').classList.remove('active');
+  }, true);
+
   // ── 1. Constants & Configurations ──────────────────────────────────────────
   // Use the configured Render API, the same-origin API in production, or the
   // local FastAPI server during development.
@@ -1455,6 +1466,7 @@
           document.getElementById('tabBtnLayers').click();
         } else if (action === 'table') {
           closeSidebar();
+          dom.attrDrawer.hidden = false;
           dom.attrDrawer.classList.remove('collapsed');
           dom.btnAttrTable.classList.add('active');
         }
