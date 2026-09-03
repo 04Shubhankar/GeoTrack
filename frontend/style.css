@@ -1333,6 +1333,10 @@ select.quick-demo-select {
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: pointer;
   color: var(--text-primary);
   font-size: 15px;
   cursor: pointer;
