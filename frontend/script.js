@@ -1044,11 +1044,13 @@
   dom.attrQcFilter.addEventListener('change', filterAttributeTable);
 
   dom.btnAttrTable.addEventListener('click', () => {
+    dom.attrDrawer.hidden = false;
     const isCollapsed = dom.attrDrawer.classList.toggle('collapsed');
     dom.btnAttrTable.classList.toggle('active', !isCollapsed);
   });
 
   dom.attrCloseBtn.addEventListener('click', () => {
+    dom.attrDrawer.hidden = true;
     dom.attrDrawer.classList.add('collapsed');
     dom.btnAttrTable.classList.remove('active');
   });
