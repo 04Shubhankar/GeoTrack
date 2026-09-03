@@ -11,10 +11,10 @@
   window.GeoTrackAppLoaded = true;
 
   // ── 1. Constants & Configurations ──────────────────────────────────────────
-  // If page is running directly on port 8000, use relative paths.
-  // If running via Live Server (5500), Vite (5173), or file://, route to http://127.0.0.1:8000
+  // Use the configured Render API, the same-origin API in production, or the
+  // local FastAPI server during development.
   const API_BASE = window.GEOTRACK_API_URL || (
-    window.location.port === '8000' ? '' : 'http://127.0.0.1:8000'
+    window.location.port === '8000' || window.location.port === '' ? '' : 'http://127.0.0.1:8000'
   );
   const API_HOST = API_BASE || window.location.origin;
 
@@ -453,10 +453,7 @@
 
   // ── Helper: Robust Backend Predict Request ─────────────────────────────────
   async function sendPredictRequest(formData) {
-    const isDirectBackend = window.location.protocol.startsWith('http') && window.location.port === '8000';
-    const endpoints = isDirectBackend
-      ? ['/predict', 'http://127.0.0.1:8000/predict', 'http://localhost:8000/predict']
-      : ['http://127.0.0.1:8000/predict', 'http://localhost:8000/predict', '/predict'];
+    const endpoints = [`${API_BASE}/predict`];
 
     let lastError = null;
     let predictResponse = null;
@@ -467,12 +464,6 @@
           method: 'POST',
           body: formData
         });
-
-        // If a static server (e.g. Live Server on port 5500) answers 405 Method Not Allowed,
-        // ignore it and route directly to the FastAPI server on port 8000!
-        if (resp.status === 405 && !url.includes(':8000')) {
-          continue;
-        }
 
         if (resp.ok) {
           return resp;
@@ -488,7 +479,7 @@
     }
 
     if (predictResponse) return predictResponse;
-    throw new Error(lastError ? lastError.message : 'Could not reach FastAPI backend at http://127.0.0.1:8000. Please ensure the server is running.');
+    throw new Error(lastError ? lastError.message : 'Could not reach the GeoTrack backend. Please check the Render service.');
   }
 
   // ── 6. Live Analysis: Extract Satellite Imagery & Call Backend ─────────────

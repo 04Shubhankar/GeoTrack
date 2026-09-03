@@ -13,6 +13,7 @@ uvicorn
 python-multipart
 python-dotenv
 supabase
+websockets>=14.0
 shapely
 rasterio
 reportlab
