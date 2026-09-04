@@ -76,6 +76,7 @@
     aoiRectangle: null,
     aoiPolygon: null,
     aoiPolygonPath: [],
+    aoiStartMarker: null,
     aoiMode: null,
     aoiBounds: null,
 
@@ -346,7 +347,7 @@
     dom.btnFinishAOIPolygon.style.display = mode === 'polygon' ? 'inline-flex' : 'none';
     dom.aoiMapBanner.style.display = 'flex';
     dom.aoiMapBanner.querySelector('span').textContent = mode === 'polygon'
-      ? 'Click points on the map to draw a polygon, then click Finish'
+      ? 'Click polygon corners, then click the start point to close it'
       : 'Click on the map to place the first corner of your selection box';
     map.setOptions({ draggable: false, draggableCursor: 'crosshair' });
   }
@@ -371,10 +372,38 @@
       state.aoiPolygon.setMap(null);
       state.aoiPolygon = null;
     }
+    if (state.aoiStartMarker) {
+      state.aoiStartMarker.setMap(null);
+      state.aoiStartMarker = null;
+    }
   }
 
   function addAOIPolygonPoint(latLng) {
     state.aoiPolygonPath.push(latLng);
+    if (state.aoiPolygonPath.length === 1) {
+      state.aoiStartMarker = new google.maps.Marker({
+        position: latLng,
+        map,
+        clickable: true,
+        title: 'Close polygon at starting point',
+        label: {
+          text: 'S',
+          color: '#04111f',
+          fontWeight: '700'
+        },
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: '#00e5ff',
+          fillOpacity: 1,
+          strokeColor: '#04111f',
+          strokeWeight: 2
+        },
+        zIndex: 101
+      });
+      state.aoiStartMarker.addListener('click', finishPolygonSelection);
+    }
+
     if (!state.aoiPolygon) {
       state.aoiPolygon = new google.maps.Polygon({
         paths: state.aoiPolygonPath,
@@ -408,6 +437,10 @@
     dom.btnFinishAOIPolygon.style.display = 'none';
     dom.aoiMapBanner.style.display = 'none';
     map.setOptions({ draggable: true, draggableCursor: null });
+    if (state.aoiStartMarker) {
+      state.aoiStartMarker.setMap(null);
+      state.aoiStartMarker = null;
+    }
     applyAOIBounds(bounds, state.aoiPolygonPath);
   }
 
@@ -504,6 +537,10 @@
     if (state.aoiPolygon) {
       state.aoiPolygon.setMap(null);
       state.aoiPolygon = null;
+    }
+    if (state.aoiStartMarker) {
+      state.aoiStartMarker.setMap(null);
+      state.aoiStartMarker = null;
     }
     state.aoiPolygonPath = [];
     state.aoiMode = null;
