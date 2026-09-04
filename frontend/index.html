@@ -133,6 +133,9 @@
               <button class="tool-btn primary" id="btnDrawBox" style="flex: 1; justify-content: center; padding: 8px;">
                 <i class="fa-solid fa-draw-polygon"></i> Draw Box on Map
               </button>
+              <button class="tool-btn" id="btnDrawPolygon" style="flex: 1; justify-content: center; padding: 8px;">
+                <i class="fa-solid fa-draw-polygon"></i> Draw Polygon
+              </button>
               <button class="tool-btn" id="btnCaptureView" style="flex: 1; justify-content: center; padding: 8px;">
                 <i class="fa-solid fa-camera"></i> Use Map View
               </button>
@@ -461,6 +464,7 @@
         <i class="fa-solid fa-draw-polygon" style="color: var(--accent-cyan);"></i>
         <span>Click and drag on the map to define the Area of Interest</span>
         <button id="btnCancelAOIDraw" class="tool-btn" style="padding: 2px 8px; font-size: 0.7rem;">Cancel</button>
+        <button id="btnFinishAOIPolygon" class="tool-btn primary" style="display: none; padding: 2px 8px; font-size: 0.7rem;">Finish</button>
       </div>
 
       <!-- Live Measurement Banner -->

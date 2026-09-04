@@ -3,8 +3,11 @@
 import os
 import uuid
 import logging
-from PIL import Image
-from fastapi import FastAPI, UploadFile, File, Query
+import json
+
+import numpy as np
+from PIL import Image, ImageDraw
+from fastapi import FastAPI, UploadFile, File, Form, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -67,7 +70,10 @@ def reports(limit: int = Query(default=50, ge=1, le=100)):
 
 
 @app.post("/predict")
-async def predict_route(file: UploadFile = File(...)):
+async def predict_route(
+    file: UploadFile = File(...),
+    aoi_polygon: str = Form(default="")
+):
     """
     Accepts image upload → runs U-Net → returns:
     - predicted mask as PNG
@@ -87,6 +93,44 @@ async def predict_route(file: UploadFile = File(...)):
         stage = "requesting Hugging Face prediction"
         pred_mask, pred_rgb, confidence = predict_remote(img_path)
         h, w = pred_mask.shape
+
+        valid_mask = None
+        if aoi_polygon:
+            try:
+                polygon = json.loads(aoi_polygon)
+                if not isinstance(polygon, list) or len(polygon) < 3:
+                    raise ValueError("aoi_polygon must contain at least three points")
+                if any(
+                    not isinstance(point, dict)
+                    or not isinstance(point.get("lat"), (int, float))
+                    or not isinstance(point.get("lng"), (int, float))
+                    for point in polygon
+                ):
+                    raise ValueError("aoi_polygon points must contain numeric lat and lng values")
+
+                min_lng = min(point["lng"] for point in polygon)
+                max_lng = max(point["lng"] for point in polygon)
+                min_lat = min(point["lat"] for point in polygon)
+                max_lat = max(point["lat"] for point in polygon)
+                if min_lng == max_lng or min_lat == max_lat:
+                    raise ValueError("aoi_polygon must cover a non-zero area")
+
+                pixel_points = [
+                    (
+                        round((point["lng"] - min_lng) / (max_lng - min_lng) * (w - 1)),
+                        round((max_lat - point["lat"]) / (max_lat - min_lat) * (h - 1))
+                    )
+                    for point in polygon
+                ]
+                polygon_image = Image.new("1", (w, h), 0)
+                ImageDraw.Draw(polygon_image).polygon(pixel_points, fill=1)
+                valid_mask = np.asarray(polygon_image, dtype=bool)
+                if not valid_mask.any():
+                    raise ValueError("aoi_polygon does not cover any image pixels")
+                pred_rgb = pred_rgb.copy()
+                pred_rgb[~valid_mask] = 0
+            except (TypeError, ValueError, json.JSONDecodeError) as exc:
+                raise HTTPException(status_code=400, detail=f"Invalid aoi_polygon: {exc}") from exc
 
         stage = "uploading prediction mask"
         mask_path = os.path.join(RESULT_DIR, f"{job_id}_mask.png")
@@ -110,7 +154,13 @@ async def predict_route(file: UploadFile = File(...)):
         )
 
         stage = "generating GeoJSON"
-        geojson      = mask_to_geojson(pred_mask, confidence, w, h)
+        geojson      = mask_to_geojson(
+            pred_mask,
+            confidence,
+            w,
+            h,
+            valid_mask=valid_mask
+        )
         geojson_path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
         save_geojson(geojson, geojson_path)
 
@@ -127,9 +177,12 @@ async def predict_route(file: UploadFile = File(...)):
             "forest_land", "water", "barren_land"
         ]
         class_pixels = {}
-        total_pixels = pred_mask.size
+        total_pixels = int(valid_mask.sum()) if valid_mask is not None else pred_mask.size
         for i, name in enumerate(class_names):
-            count = int((pred_mask == i).sum())
+            class_mask = pred_mask == i
+            if valid_mask is not None:
+                class_mask &= valid_mask
+            count = int(class_mask.sum())
             if count > 0:
                 class_pixels[name] = round(count / total_pixels * 100, 2)
 
@@ -185,9 +238,20 @@ async def predict_route(file: UploadFile = File(...)):
             "report_url"     : report_url
         })
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Prediction failed during stage: %s", stage)
         return JSONResponse({"error": f"Prediction failed during {stage}: {e}"}, status_code=500)
+
+
+@app.get("/results/{job_id}/geojson")
+def get_job_geojson(job_id: str):
+    """Return a retained local GeoJSON artifact for a prediction job."""
+    path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="GeoJSON not found for this job")
+    return FileResponse(path, media_type="application/geo+json")
 
 
 @app.get("/results/{filename}")

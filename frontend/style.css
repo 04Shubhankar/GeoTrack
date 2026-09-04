@@ -484,8 +484,20 @@ html, body {
 
 /* ── AOI Selection ───────────────────────────────────────────────────────── */
 .aoi-action-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.aoi-action-buttons > .tool-btn {
+  min-width: 0;
+  width: 100%;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+#btnCaptureView {
+  grid-column: 1 / -1;
 }
 
 .aoi-details-box {
