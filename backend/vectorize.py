@@ -20,7 +20,8 @@ def mask_to_geojson(
     confidence: float | np.ndarray | None = None,
     image_width: int | None = None,
     image_height: int | None = None,
-    bounds: tuple[float, float, float, float] = (0, 0, 1, 1)
+    bounds: tuple[float, float, float, float] = (0, 0, 1, 1),
+    valid_mask: np.ndarray | None = None
 ) -> dict:
     """
     Converts prediction mask to GeoJSON FeatureCollection.
@@ -47,7 +48,10 @@ def mask_to_geojson(
     # Vectorize each class separately
     for class_idx, class_name in enumerate(CLASS_NAMES):
         # Binary mask for this class
-        binary_mask = (pred_mask == class_idx).astype(np.uint8)
+        binary_mask = pred_mask == class_idx
+        if valid_mask is not None:
+            binary_mask &= valid_mask
+        binary_mask = binary_mask.astype(np.uint8)
 
         if binary_mask.sum() == 0:
             continue  # skip classes not present

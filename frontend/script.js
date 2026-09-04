@@ -651,6 +651,14 @@
       setPipelineStep(3);
       const formData = new FormData();
       formData.append('file', imgBlob, 'satellite_aoi.png');
+      if (state.aoiPolygonPath.length >= 3) {
+        formData.append('aoi_polygon', JSON.stringify(
+          state.aoiPolygonPath.map(point => ({
+            lat: point.lat(),
+            lng: point.lng()
+          }))
+        ));
+      }
 
       const predictResp = await sendPredictRequest(formData);
       const data = await predictResp.json().catch(() => ({}));
