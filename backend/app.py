@@ -4,7 +4,7 @@ import os
 import uuid
 import logging
 from PIL import Image
-from fastapi import FastAPI, UploadFile, File, Query
+from fastapi import FastAPI, UploadFile, File, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -188,6 +188,15 @@ async def predict_route(file: UploadFile = File(...)):
     except Exception as e:
         logger.exception("Prediction failed during stage: %s", stage)
         return JSONResponse({"error": f"Prediction failed during {stage}: {e}"}, status_code=500)
+
+
+@app.get("/results/{job_id}/geojson")
+def get_job_geojson(job_id: str):
+    """Return a retained local GeoJSON artifact for a prediction job."""
+    path = os.path.join(GEOJSON_DIR, f"{job_id}_output.geojson")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="GeoJSON not found for this job")
+    return FileResponse(path, media_type="application/geo+json")
 
 
 @app.get("/results/{filename}")

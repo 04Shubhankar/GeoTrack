@@ -74,6 +74,9 @@
     isSelectingAOI: false,
     aoiStartLatLng: null,
     aoiRectangle: null,
+    aoiPolygon: null,
+    aoiPolygonPath: [],
+    aoiMode: null,
     aoiBounds: null,
 
     // Upload & Results State
@@ -133,6 +136,7 @@
 
     // Tab 1: AOI & Ingestion
     btnDrawBox: document.getElementById('btnDrawBox'),
+    btnDrawPolygon: document.getElementById('btnDrawPolygon'),
     btnCaptureView: document.getElementById('btnCaptureView'),
     aoiBadge: document.getElementById('aoiBadge'),
     aoiDetailsBox: document.getElementById('aoiDetailsBox'),
@@ -200,6 +204,7 @@
     earthMap: document.getElementById('earthMap'),
     aoiMapBanner: document.getElementById('aoiMapBanner'),
     btnCancelAOIDraw: document.getElementById('btnCancelAOIDraw'),
+    btnFinishAOIPolygon: document.getElementById('btnFinishAOIPolygon'),
     measureBanner: document.getElementById('measureBanner'),
     measureVal: document.getElementById('measureVal'),
     btnFinishMeasure: document.getElementById('btnFinishMeasure'),
@@ -291,6 +296,11 @@
 
       // Handle AOI Drawing Clicks
       if (state.isSelectingAOI) {
+        if (state.aoiMode === 'polygon') {
+          addAOIPolygonPoint(e.latLng);
+          return;
+        }
+
         if (!state.aoiStartLatLng) {
           // First point: anchor
           state.aoiStartLatLng = e.latLng;
@@ -317,21 +327,39 @@
   }
 
   function startAOIDrawing() {
+    startAOISelection('rectangle');
+  }
+
+  function startPolygonDrawing() {
+    startAOISelection('polygon');
+  }
+
+  function startAOISelection(mode) {
     if (!map) return;
     state.isSelectingAOI = true;
+    state.aoiMode = mode;
     state.aoiStartLatLng = null;
+    state.aoiPolygonPath = [];
     dom.btnSelectAOI.classList.add('active');
     dom.btnDrawBox.classList.add('active');
+    dom.btnDrawPolygon.classList.toggle('active', mode === 'polygon');
+    dom.btnFinishAOIPolygon.style.display = mode === 'polygon' ? 'inline-flex' : 'none';
     dom.aoiMapBanner.style.display = 'flex';
-    dom.aoiMapBanner.querySelector('span').textContent = 'Click on the map to place the first corner of your selection box';
+    dom.aoiMapBanner.querySelector('span').textContent = mode === 'polygon'
+      ? 'Click points on the map to draw a polygon, then click Finish'
+      : 'Click on the map to place the first corner of your selection box';
     map.setOptions({ draggable: false, draggableCursor: 'crosshair' });
   }
 
   function cancelAOIDrawing() {
     state.isSelectingAOI = false;
     state.aoiStartLatLng = null;
+    state.aoiMode = null;
+    state.aoiPolygonPath = [];
     dom.btnSelectAOI.classList.remove('active');
     dom.btnDrawBox.classList.remove('active');
+    dom.btnDrawPolygon.classList.remove('active');
+    dom.btnFinishAOIPolygon.style.display = 'none';
     dom.aoiMapBanner.style.display = 'none';
     map.setOptions({ draggable: true, draggableCursor: null });
 
@@ -339,6 +367,48 @@
       state.aoiRectangle.setMap(null);
       state.aoiRectangle = null;
     }
+    if (state.aoiPolygon) {
+      state.aoiPolygon.setMap(null);
+      state.aoiPolygon = null;
+    }
+  }
+
+  function addAOIPolygonPoint(latLng) {
+    state.aoiPolygonPath.push(latLng);
+    if (!state.aoiPolygon) {
+      state.aoiPolygon = new google.maps.Polygon({
+        paths: state.aoiPolygonPath,
+        map,
+        clickable: false,
+        fillColor: '#00e5ff',
+        fillOpacity: 0.2,
+        strokeColor: '#00e5ff',
+        strokeWeight: 2,
+        strokeOpacity: 0.9,
+        zIndex: 100
+      });
+    } else {
+      state.aoiPolygon.setPath(state.aoiPolygonPath);
+    }
+  }
+
+  function finishPolygonSelection() {
+    if (state.aoiMode !== 'polygon' || state.aoiPolygonPath.length < 3) {
+      return;
+    }
+
+    const bounds = new google.maps.LatLngBounds();
+    state.aoiPolygonPath.forEach(point => bounds.extend(point));
+    state.isSelectingAOI = false;
+    state.aoiMode = null;
+    state.aoiStartLatLng = null;
+    dom.btnSelectAOI.classList.remove('active');
+    dom.btnDrawBox.classList.remove('active');
+    dom.btnDrawPolygon.classList.remove('active');
+    dom.btnFinishAOIPolygon.style.display = 'none';
+    dom.aoiMapBanner.style.display = 'none';
+    map.setOptions({ draggable: true, draggableCursor: null });
+    applyAOIBounds(bounds, state.aoiPolygonPath);
   }
 
   function updateAOIRectangle(bounds) {
@@ -372,8 +442,11 @@
   function finishAOISelection(bounds) {
     state.isSelectingAOI = false;
     state.aoiStartLatLng = null;
+    state.aoiMode = null;
     dom.btnSelectAOI.classList.remove('active');
     dom.btnDrawBox.classList.remove('active');
+    dom.btnDrawPolygon.classList.remove('active');
+    dom.btnFinishAOIPolygon.style.display = 'none';
     dom.aoiMapBanner.style.display = 'none';
     map.setOptions({ draggable: true, draggableCursor: null });
 
@@ -385,7 +458,7 @@
     applyAOIBounds(bounds);
   }
 
-  function applyAOIBounds(bounds) {
+  function applyAOIBounds(bounds, polygonPath = null) {
     state.aoiBounds = bounds;
 
     const sw = bounds.getSouthWest();
@@ -409,7 +482,9 @@
       const p2 = new google.maps.LatLng(sw.lat(), ne.lng());
       const p3 = new google.maps.LatLng(ne.lat(), ne.lng());
       const p4 = new google.maps.LatLng(ne.lat(), sw.lng());
-      const areaSqM = google.maps.geometry.spherical.computeArea([p1, p2, p3, p4]);
+      const areaSqM = polygonPath && polygonPath.length >= 3
+        ? google.maps.geometry.spherical.computeArea(polygonPath)
+        : google.maps.geometry.spherical.computeArea([p1, p2, p3, p4]);
       areaM2 = areaSqM;
     }
 
@@ -426,6 +501,12 @@
       state.aoiRectangle.setMap(null);
       state.aoiRectangle = null;
     }
+    if (state.aoiPolygon) {
+      state.aoiPolygon.setMap(null);
+      state.aoiPolygon = null;
+    }
+    state.aoiPolygonPath = [];
+    state.aoiMode = null;
     state.aoiBounds = null;
     dom.aoiBadge.textContent = 'None Selected';
     dom.aoiBadge.style.background = 'transparent';
@@ -437,7 +518,9 @@
   // AOI UI Event Listeners
   dom.btnSelectAOI.addEventListener('click', startAOIDrawing);
   dom.btnDrawBox.addEventListener('click', startAOIDrawing);
+  dom.btnDrawPolygon.addEventListener('click', startPolygonDrawing);
   dom.btnCancelAOIDraw.addEventListener('click', cancelAOIDrawing);
+  dom.btnFinishAOIPolygon.addEventListener('click', finishPolygonSelection);
   dom.btnClearAOI.addEventListener('click', clearAOI);
 
   // Capture Current Viewport
