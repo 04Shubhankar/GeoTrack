@@ -340,7 +340,7 @@ def create_report(
     c.drawCentredString(
         page_width / 2,
         title_y - 42,
-        f"Generated: {report_date}"
+        f"Generated: {report_date} UTC"
     )
 
     # =====================================================

@@ -433,7 +433,7 @@
                 <span class="export-badge">PNG 256×256</span>
               </button>
               <button class="export-btn" id="btnDownloadReport">
-                <span><i class="fa-solid fa-file-pdf"></i> Analytical Report</span>
+                <span><i class="fa-solid fa-file-pdf"></i> Analytical Report (UTC)</span>
                 <span class="export-badge">PDF</span>
               </button>
               <button class="export-btn" id="btnExportCSV">
@@ -449,7 +449,10 @@
 
           <div class="panel-card">
             <div class="panel-card-header">
-              <span class="panel-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Analyses</span>
+              <div class="panel-card-heading">
+                <span class="panel-card-title"><i class="fa-solid fa-clock-rotate-left"></i> Recent Analyses</span>
+                <small class="tz-note">Dashboard times are in IST. Reports use UTC.</small>
+              </div>
               <button class="tool-btn" id="btnRefreshReports" title="Refresh reports">
                 <i class="fa-solid fa-rotate"></i>
               </button>

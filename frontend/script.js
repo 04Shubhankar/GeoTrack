@@ -1271,7 +1271,10 @@
         ? `${(confidence * 100).toFixed(1)}% confidence`
         : 'Confidence unavailable';
       const dateText = report.created_at
-        ? new Date(report.created_at).toLocaleString()
+        ? new Date(report.created_at).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          timeZoneName: 'short'
+        })
         : 'Saved analysis';
       const reportLink = report.report_url
         ? `<a href="${escapeHtml(resolveUrl(report.report_url))}" target="_blank" rel="noopener">Open PDF</a>`
